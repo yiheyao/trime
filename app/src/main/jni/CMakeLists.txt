@@ -6,6 +6,9 @@ cmake_minimum_required(VERSION 3.18.0)
 
 project(trime VERSION 3.0.0)
 
+# Enable large file support (needed for 64-bit file operations in lua5.4, leveldb, etc.)
+add_definitions(-D_FILE_OFFSET_BITS=64)
+
 # for reproducible build
 add_link_options("LINKER:--hash-style=both,--build-id=none")
 

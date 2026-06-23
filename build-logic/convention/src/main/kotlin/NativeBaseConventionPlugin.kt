@@ -18,6 +18,7 @@ open class NativeBaseConventionPlugin : Plugin<Project> {
                 externalNativeBuild {
                     cmake {
                         arguments("-DANDROID_STL=c++_static")
+                        arguments("-DANDROID_PLATFORM=android-24")
                     }
                 }
             }
