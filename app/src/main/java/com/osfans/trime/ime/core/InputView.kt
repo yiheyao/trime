@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.core.CompositionProto
 import com.osfans.trime.core.RimeMessage
 import com.osfans.trime.R
+import androidx.constraintlayout.widget.ConstraintLayout
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
@@ -233,7 +234,7 @@ class InputView(
             },
         )
 
-        // 童伴浮窗容器：覆盖在 keyboardView 顶部（覆盖工具栏和部分按键，在键盘内部）
+        // 童伴浮窗容器：位于 InputView 顶部（弹窗打开时扩展 IME 高度，使弹窗与键盘并存）
         val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
             visibility = View.GONE
         }
@@ -241,7 +242,7 @@ class InputView(
             tongBanContainer,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
-                topToTop = R.id.keyboard_view
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
             },
         )
         tongBanManager.setupContainer(tongBanContainer)

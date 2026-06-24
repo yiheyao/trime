@@ -25,6 +25,27 @@ import timber.log.Timber
 class TongBanManager(
     private val context: Context,
 ) {
+    companion object {
+        @Volatile
+        private var INSTANCE: TongBanManager? = null
+
+        /** 当前实例（用于 TrimeInputMethodService.commitText 拦截文本） */
+        fun getInstance(): TongBanManager? = INSTANCE
+
+        /** 由 commitText 调用：检查弹窗是否打开且可输入 */
+        @JvmStatic
+        fun isShowingAndFocused(): Boolean = INSTANCE?.isShowingAndFocusedInternal() ?: false
+
+        /** 由 commitText 调用：追加文字到弹窗 EditText */
+        @JvmStatic
+        fun appendInputText(text: String) {
+            INSTANCE?.appendInputTextInternal(text)
+        }
+    }
+
+    init {
+        INSTANCE = this
+    }
     private val service: com.osfans.trime.ime.core.TrimeInputMethodService by
         InputDependencyManager.getInstance().di.instance()
     private val tongBanService = TongBanService(context)
@@ -37,6 +58,7 @@ class TongBanManager(
 
     /** 当前浮窗是否可见 */
     var isShowing: Boolean = false
+    private var lastKeyboardHeightPx: Int = 0
         private set
 
     /**
@@ -109,6 +131,8 @@ class TongBanManager(
         u.root.layoutParams = flp
         ctrl.open()
         parentContainer?.visibility = View.VISIBLE
+        // 关键：扩展 IME 整体高度 = 原键盘高度 + 弹窗高度，使弹窗和键盘并存且都不被遮挡
+        extendImeHeight(keyboardHeightPx, dialogHeight)
         // 动态设置外层容器高度 = 弹窗高度
         val parentLp = parentContainer?.layoutParams
         if (parentLp != null) {
@@ -155,17 +179,64 @@ class TongBanManager(
     /**
      * 隐藏浮窗
      */
-    fun hide() {
+    fun hide(keyboardHeightPx: Int = lastKeyboardHeightPx) {
         val c = container ?: return
         val ctrl = controller ?: return
         ctrl.close()
         c.visibility = View.GONE
+        // 恢复 IME 高度
+        if (keyboardHeightPx > 0) restoreImeHeight(keyboardHeightPx)
         isShowing = false
     }
 
     /** 切换显示 */
     fun toggle(keyboardHeightPx: Int) {
-        if (isShowing) hide() else show(keyboardHeightPx)
+        lastKeyboardHeightPx = keyboardHeightPx
+        if (isShowing) hide(keyboardHeightPx) else show(keyboardHeightPx)
+    }
+
+    /** 是否弹窗正在显示且输入框已聚焦（用于 commitText 路由判断） */
+    fun isShowingAndFocusedInternal(): Boolean {
+        if (!isShowing) return false
+        val et = ui?.inputEditText ?: return false
+        return et.hasFocus() || et.requestFocus()
+    }
+
+    /** 由 service.commitText 调用：将文字追加到弹窗 EditText（不走系统 InputConnection） */
+    fun appendInputTextInternal(text: String) {
+        if (!isShowing) return
+        val et = ui?.inputEditText ?: return
+        // 在 UI 线程执行 append
+        et.post {
+            val cur = et.text?.toString().orEmpty()
+            val cleaned = cleanInput(text)
+            if (cleaned.isEmpty()) return@post
+            // 限制 200 个汉字长度
+            val merged = (cur + cleaned)
+            val maxLen = 200
+            val truncated = if (merged.length > maxLen) merged.substring(0, maxLen) else merged
+            et.setText(truncated)
+            et.setSelection(truncated.length)
+        }
+    }
+
+    /** 输入清洗：去除首尾空白、换行、特殊符号 */
+    private fun cleanInput(text: String): String {
+        return text
+            .replace(Regex("[\\r\\n\\t]+"), "")
+            .trim()
+    }
+
+    /** 扩展 IME 整体高度 = 键盘高度 + 弹窗高度 */
+    private fun extendImeHeight(keyboardHeightPx: Int, popupHeightPx: Int) {
+        val totalHeight = keyboardHeightPx + popupHeightPx
+        service.setImeHeight(totalHeight)
+        android.widget.Toast.makeText(context, "ime height=$totalHeight", android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    /** 恢复 IME 高度到弹窗未打开时的尺寸 */
+    private fun restoreImeHeight(keyboardHeightPx: Int) {
+        service.resetImeHeight(keyboardHeightPx)
     }
 
     /** 强制取消进行中的请求（不关闭浮窗） */

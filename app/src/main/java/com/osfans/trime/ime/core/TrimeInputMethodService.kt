@@ -50,6 +50,7 @@ import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.ThemeManager
 import com.osfans.trime.ime.composition.CandidatesView
 import com.osfans.trime.ime.keyboard.InputFeedbackManager
+import com.osfans.trime.ime.tongban.TongBanManager
 import com.osfans.trime.receiver.RimeIntentReceiver
 import com.osfans.trime.util.any
 import com.osfans.trime.util.findSectionFrom
@@ -581,6 +582,13 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     fun commitText(text: String) {
+        // 童伴浮窗打开时，将输入重定向到弹窗的 EditText（不再走 WeChat 的输入连接）
+        if (TongBanManager.isShowingAndFocused()) {
+            TongBanManager.appendInputText(text)
+            lastCommittedText = text
+            composingText = ""
+            return
+        }
         val ic = currentInputConnection ?: return
 
         // when composing text equals commit content, finish composing text as-is
@@ -592,6 +600,39 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         lastCommittedText = text
         composingText = ""
         InputFeedbackManager.textCommitSpeak(text)
+    }
+
+    /**
+     * 公开接口：动态调整 IME 窗口和 inputArea 的高度（用于童伴浮窗）
+     */
+    fun setImeHeight(totalHeightPx: Int) {
+        try {
+            // 使用 reflection 调用 Window.setAttributes / getAttributes，规避 Kotlin 属性解析问题
+            val win = window ?: return
+            val attrsClass = Class.forName("android.view.WindowManager\$LayoutParams")
+            val lpConstructor = attrsClass.getConstructor()
+            val lp = lpConstructor.newInstance() as android.view.WindowManager.LayoutParams
+            // 读取当前属性
+            val getAttrs = win.javaClass.getMethod("getAttributes")
+            val current = getAttrs.invoke(win) as android.view.WindowManager.LayoutParams
+            lp.copyFrom(current)
+            lp.height = totalHeightPx
+            lp.width = android.view.WindowManager.LayoutParams.MATCH_PARENT
+            val setAttrs = win.javaClass.getMethod("setAttributes", attrsClass)
+            setAttrs.invoke(win, lp)
+            val inputArea = contentView
+                ?.findViewById<android.widget.FrameLayout>(android.R.id.inputArea)
+            inputArea?.layoutParams = inputArea?.layoutParams?.also {
+                it.height = totalHeightPx
+            }
+        } catch (_: Throwable) { }
+    }
+
+    /**
+     * 公开接口：恢复 IME 窗口到原始键盘高度
+     */
+    fun resetImeHeight(keyboardHeightPx: Int) {
+        setImeHeight(keyboardHeightPx)
     }
 
     /**
