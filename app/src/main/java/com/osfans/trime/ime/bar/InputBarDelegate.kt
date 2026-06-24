@@ -131,7 +131,7 @@ class InputBarDelegate : InputBroadcastReceiver {
 
     private val alwaysUi: AlwaysUi by lazy {
         AlwaysUi(
-            context = context,
+            ctx = context,
             theme = theme,
             onButtonClick = { action ->
                 if (action.isNotEmpty()) {

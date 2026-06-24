@@ -6,11 +6,13 @@
 package com.osfans.trime.ime.tongban
 
 import android.content.Context
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.InputConnection
+import android.widget.FrameLayout
 import com.osfans.trime.ime.dependency.InputDependencyManager
 import org.kodein.di.instance
-import splitties.dimensions.dp
 import timber.log.Timber
 
 /**
@@ -28,7 +30,9 @@ class TongBanManager(
     private val tongBanService = TongBanService(context)
     private var ui: TongBanDialogUi? = null
     private var controller: TongBanDialogController? = null
-    private var container: android.widget.FrameLayout? = null
+    private var container: FrameLayout? = null
+
+    private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
 
     /** 当前浮窗是否可见 */
     var isShowing: Boolean = false
@@ -37,18 +41,17 @@ class TongBanManager(
     /**
      * 初始化容器和 UI
      */
-    fun setupContainer(parent: android.widget.FrameLayout) {
+    fun setupContainer(parent: FrameLayout) {
         if (container != null) return
-        val containerLayout = android.widget.FrameLayout(context).apply {
+        val containerLayout = FrameLayout(context).apply {
             visibility = View.GONE
-            // 默认充满父布局上层区域
-            layoutParams = android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
             )
         }
         val dialog = TongBanDialogUi(
-            ctx = context,
+            context = context,
             onQuery = { /* 由 controller 内部处理 */ },
             onInsert = { text -> onInsert(text) },
             onClose = { hide() },
@@ -57,16 +60,16 @@ class TongBanManager(
         ctrl.onClosed = { hide() }
         containerLayout.addView(
             dialog.root,
-            android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
         parent.addView(
             containerLayout,
-            android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
         container = containerLayout
@@ -85,14 +88,14 @@ class TongBanManager(
         val dialogHeight = (keyboardHeightPx * 2 / 5).coerceAtLeast(dp(160))
         u.setMaxHeight(dialogHeight)
         // 调整容器内浮窗 view 的高度
-        u.root.layoutParams = (u.root.layoutParams
-            ?: android.widget.FrameLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            )).apply {
-            height = dialogHeight
-            gravity = android.view.Gravity.TOP
-        }
+        val flp = (u.root.layoutParams as? FrameLayout.LayoutParams)
+            ?: FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            )
+        flp.height = dialogHeight
+        flp.gravity = Gravity.TOP
+        u.root.layoutParams = flp
         ctrl.open()
         c.visibility = View.VISIBLE
         isShowing = true
