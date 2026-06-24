@@ -100,6 +100,17 @@
     <string name="real_time_logs">实时日志</string>
     <string name="real_time_logs_clear">清除所有日志</string>
     <string name="real_time_logs_confirm">要清除有日志吗？(此动作不能复原)</string>
+    <string name="tongban_dialog_title">童伴智能问题</string>
+    <string name="tongban_input_hint">请输入您的问题…</string>
+    <string name="tongban_query_button">查询</string>
+    <string name="tongban_insert_button">插入</string>
+    <string name="tongban_error_no_network">网络不可用，请检查网络连接</string>
+    <string name="tongban_error_timeout">请求超时，请重试</string>
+    <string name="tongban_error_unauthorized">权限失效，请重启 App</string>
+    <string name="tongban_error_rate_limited">请求过于频繁，请稍后再试</string>
+    <string name="tongban_error_server">服务异常，请稍后重试</string>
+    <string name="tongban_error_unknown">请求失败，请重试</string>
+    <string name="tongban_error_network_switch">网络已切换，请重试</string>
     <string name="app_crash">应用程序崩溃了</string>
     <string name="exception_logcat_created">Logcat 进程已创建</string>
     <string name="app_crash_message">抱歉，但我们提供了日志以供调查。</string>

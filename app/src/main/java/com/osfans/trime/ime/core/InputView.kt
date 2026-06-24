@@ -33,6 +33,7 @@ import com.osfans.trime.ime.keyboard.KeyboardPrefs.isLandscapeMode
 import com.osfans.trime.ime.keyboard.KeyboardWindow
 import com.osfans.trime.ime.popup.PopupDelegate
 import com.osfans.trime.ime.symbol.LiquidWindow
+import com.osfans.trime.ime.tongban.TongBanManager
 import com.osfans.trime.ime.window.BoardWindowManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -101,6 +102,7 @@ class InputView(
     private val inputBar: InputBarDelegate by di.instance()
     private val keyboardWindow: KeyboardWindow by di.instance()
     private val liquidWindow: LiquidWindow by di.instance()
+    private val tongBanManager: TongBanManager = TongBanManager(themedContext)
 
     private val inlinePreeditMode by AppPrefs.defaultInstance().general.inlinePreeditMode
     private val candidatesMode by AppPrefs.defaultInstance().candidates.mode
@@ -142,6 +144,9 @@ class InputView(
     init {
         // MUST call before any operation
         inputDepMgr.start()
+
+        // 童伴浮窗：设置点击回调
+        inputBar.tongBanClickListener = { toggleTongBan() }
 
         windowManager.cacheResidentWindow(keyboardWindow, createView = true)
         windowManager.cacheResidentWindow(liquidWindow)
@@ -226,12 +231,42 @@ class InputView(
             },
         )
 
+        // 童伴浮窗容器：覆盖在 keyboardView 上层（仅覆盖键盘区域）
+        val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
+            visibility = View.GONE
+        }
+        add(
+            tongBanContainer,
+            lParams(matchParent, wrapContent) {
+                centerHorizontally()
+                bottomOfParent()
+            },
+        )
+        tongBanManager.setupContainer(tongBanContainer)
+
         add(
             popup.root,
             lParams(matchParent, matchParent) {
                 centerInParent()
             },
         )
+    }
+
+    private fun toggleTongBan() {
+        val height = currentKeyboardHeightPx()
+        if (tongBanManager.isShowing) {
+            tongBanManager.hide()
+        } else {
+            tongBanManager.show(height)
+        }
+    }
+
+    private fun currentKeyboardHeightPx(): Int {
+        return try {
+            keyboardView.height.takeIf { it > 0 } ?: dp(280)
+        } catch (e: Exception) {
+            dp(280)
+        }
     }
 
     private fun updateKeyboardSize() {
@@ -283,8 +318,15 @@ class InputView(
         updateEnterKeyLabel(info)
         broadcaster.onStartInput(info)
         if (!restarting) {
+            // 切聊天/重新开始输入：销毁童伴 session
+            tongBanManager.hide()
             windowManager.attachWindow(KeyboardWindow)
         }
+    }
+
+    fun finishInput() {
+        // 切后台/页面销毁：关闭浮窗，强制中断请求
+        tongBanManager.hide()
     }
 
     fun updateEnterKeyLabel(info: EditorInfo) {
@@ -349,6 +391,8 @@ class InputView(
         // implies that InputView should not be attached again after detached.
         updateWindowViewHeightJob.cancel()
         popup.root.removeAllViews()
+        // 童伴浮窗：释放资源
+        tongBanManager.release()
         inputDepMgr.stop()
         super.onDetachedFromWindow()
     }

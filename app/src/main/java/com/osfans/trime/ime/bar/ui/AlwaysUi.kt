@@ -6,12 +6,18 @@
 package com.osfans.trime.ime.bar.ui
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
+import android.view.Gravity
+import android.widget.TextView
 import android.widget.ViewAnimator
 import androidx.annotation.DrawableRes
 import androidx.constraintlayout.widget.ConstraintLayout
 import com.osfans.trime.R
+import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.model.ToolBar
+import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.after
 import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.centerVertically
@@ -24,12 +30,14 @@ import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
 import splitties.views.dsl.core.lParams
 import splitties.views.dsl.core.matchParent
+import splitties.views.gravityCenter
 import timber.log.Timber
 
 class AlwaysUi(
     override val ctx: Context,
     private val theme: Theme,
     private val onButtonClick: ((String) -> Unit)? = null,
+    private val onTongBanClick: (() -> Unit)? = null,
 ) : Ui {
     enum class State {
         Toolbar,
@@ -39,6 +47,27 @@ class AlwaysUi(
 
     var currentState = State.Toolbar
         private set
+
+    /**
+     * 「童」按钮：放在工具栏右端（紧贴圆圈收起按钮左侧）
+     * 底色与工具栏原生一致，「童」字深色高亮
+     */
+    val tongBanButton: TextView = TextView(ctx).apply {
+        text = "童"
+        textSize = 18f
+        gravity = Gravity.CENTER
+        setTypeface(typeface, Typeface.BOLD)
+        setTextColor(ColorManager.getColor("hilited_candidate_text_color"))
+        // 底色：与工具栏原生一致
+        val bgColor = runCatching { ColorManager.getColor("key_back_color") }.getOrNull()
+            ?: Color.parseColor("#E0E0E0")
+        setBackgroundColor(bgColor)
+        isClickable = true
+        isFocusable = true
+        setPadding(dp(12), dp(4), dp(12), dp(4))
+        setOnClickListener { onTongBanClick?.invoke() }
+        contentDescription = "tongban"
+    }
 
     private fun toolButton(
         buttonConfig: ToolBar.Button?,
@@ -103,11 +132,20 @@ class AlwaysUi(
                 centerVertically()
             },
         )
+        // 「童」按钮：紧贴 rightMostButton 左侧（自动成为 endOfParent 的次右元素）
+        val tongBanSize = buttonsUi.getButtonSize(theme.toolBar.buttons.firstOrNull(), customDefaultSize = dp(36))
+        add(
+            tongBanButton,
+            lParams(tongBanSize.first.coerceAtLeast(dp(36)), tongBanSize.second.coerceAtLeast(dp(36))) {
+                endOfParent()
+                centerVertically()
+            },
+        )
         add(
             animator,
             lParams(matchConstraints, matchParent) {
                 after(leftMostButton)
-                before(rightMostButton)
+                before(tongBanButton)
                 endOfParent()
                 centerVertically()
             },

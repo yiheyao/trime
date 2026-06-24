@@ -79,6 +79,12 @@ class InputBarDelegate : InputBroadcastReceiver {
     private var isClipboardFresh: Boolean = false
     private var isInlineSuggestionPresent: Boolean = false
 
+    /**
+     * 「童」按钮点击回调，由 InputView 设置
+     * - 用于触发童伴浮窗
+     */
+    var tongBanClickListener: (() -> Unit)? = null
+
     @Keep
     private val onClipboardUpdateListener = ClipboardHelper.OnClipboardUpdateListener {
         if (!clipboardSuggestion) return@OnClipboardUpdateListener
@@ -124,13 +130,18 @@ class InputBarDelegate : InputBroadcastReceiver {
     }
 
     private val alwaysUi: AlwaysUi by lazy {
-        AlwaysUi(context, theme) { action ->
-            if (action.isNotEmpty()) {
-                commonKeyboardActionListener.listener.onAction(KeyActionManager.getAction(action))
-            } else {
-                windowManager.attachWindow(SwitchOptionWindow())
-            }
-        }.apply {
+        AlwaysUi(
+            context = context,
+            theme = theme,
+            onButtonClick = { action ->
+                if (action.isNotEmpty()) {
+                    commonKeyboardActionListener.listener.onAction(KeyActionManager.getAction(action))
+                } else {
+                    windowManager.attachWindow(SwitchOptionWindow())
+                }
+            },
+            onTongBanClick = tongBanClickListener,
+        ).apply {
             hideKeyboardButton.apply {
                 setOnClickListener { service.requestHideSelf(0) }
                 onSwipe = swipeDownHideKeyboardCallback

@@ -576,6 +576,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             clearComposition()
         }
         InputFeedbackManager.finishInput()
+        // 童伴浮窗：收起键盘/页面销毁时关闭
+        inputView?.finishInput()
     }
 
     fun commitText(text: String) {
