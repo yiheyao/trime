@@ -8,6 +8,7 @@ package com.osfans.trime.ime.bar.ui
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.util.TypedValue
 import android.view.Gravity
 import android.widget.TextView
 import android.widget.ViewAnimator
@@ -52,21 +53,31 @@ class AlwaysUi(
      * 「童」按钮：放在工具栏右端（紧贴圆圈收起按钮左侧）
      * 底色与工具栏原生一致，「童」字深色高亮
      */
+    private var _onTongBanClick: (() -> Unit)? = onTongBanClick
     val tongBanButton: TextView = TextView(ctx).apply {
         text = "童"
-        textSize = 18f
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
         gravity = Gravity.CENTER
         setTypeface(typeface, Typeface.BOLD)
-        setTextColor(ColorManager.getColor("hilited_candidate_text_color"))
-        // 底色：与工具栏原生一致
-        val bgColor = runCatching { ColorManager.getColor("key_back_color") }.getOrNull()
-            ?: Color.parseColor("#E0E0E0")
-        setBackgroundColor(bgColor)
+        // 使用工具栏原生背景色（与其它工具栏按钮一致）
+        setBackgroundColor(Color.TRANSPARENT)
+        setTextColor(Color.parseColor("#222222"))
         isClickable = true
         isFocusable = true
         setPadding(dp(12), dp(4), dp(12), dp(4))
-        setOnClickListener { onTongBanClick?.invoke() }
         contentDescription = "tongban"
+        setOnClickListener {
+            Timber.d("童 button clicked")
+            android.widget.Toast.makeText(ctx, "童 clicked", android.widget.Toast.LENGTH_SHORT).show()
+            _onTongBanClick?.invoke()
+        }
+    }
+
+    /**
+     * 外部设置「童」按钮点击回调（用于解决初始化时机问题）
+     */
+    fun setOnTongBanClickListener(listener: (() -> Unit)?) {
+        _onTongBanClick = listener
     }
 
     private fun toolButton(
@@ -125,18 +136,20 @@ class AlwaysUi(
                 centerVertically()
             },
         )
+        // 「童」按钮：使用 marginEnd 推到 rightMostButton 左侧
+        // 童按钮宽度 = 36dp, 与圆圈间隔 4dp
+        val tongBanW = dp(36)
         add(
-            rightMostButton,
-            lParams(rightWidth, rightHeight) {
+            tongBanButton,
+            lParams(tongBanW, tongBanW) {
                 endOfParent()
+                marginEnd = rightWidth + dp(4)
                 centerVertically()
             },
         )
-        // 「童」按钮：紧贴 rightMostButton 左侧（自动成为 endOfParent 的次右元素）
-        val tongBanSize = buttonsUi.getButtonSize(theme.toolBar.buttons.firstOrNull(), customDefaultSize = dp(36))
         add(
-            tongBanButton,
-            lParams(tongBanSize.first.coerceAtLeast(dp(36)), tongBanSize.second.coerceAtLeast(dp(36))) {
+            rightMostButton,
+            lParams(rightWidth, rightHeight) {
                 endOfParent()
                 centerVertically()
             },

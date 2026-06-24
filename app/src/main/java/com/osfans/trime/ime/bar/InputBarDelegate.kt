@@ -85,6 +85,14 @@ class InputBarDelegate : InputBroadcastReceiver {
      */
     var tongBanClickListener: (() -> Unit)? = null
 
+    /**
+     * 设置「童」按钮点击回调（显式调用，绕过 lazy 初始化时序问题）
+     */
+    fun updateTongBanClickListener(listener: () -> Unit) {
+        tongBanClickListener = listener
+        alwaysUi.setOnTongBanClickListener(listener)
+    }
+
     @Keep
     private val onClipboardUpdateListener = ClipboardHelper.OnClipboardUpdateListener {
         if (!clipboardSuggestion) return@OnClipboardUpdateListener

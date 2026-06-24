@@ -231,7 +231,7 @@ class InputView(
             },
         )
 
-        // 童伴浮窗容器：覆盖在 keyboardView 上层（仅覆盖键盘区域）
+        // 童伴浮窗容器：紧贴 keyboardView 上方（仅覆盖键盘顶部区域，不延伸到屏幕）
         val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
             visibility = View.GONE
         }
@@ -239,21 +239,27 @@ class InputView(
             tongBanContainer,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
-                bottomOfParent()
+                above(keyboardView)
             },
         )
         tongBanManager.setupContainer(tongBanContainer)
+        // 显式设置童按钮回调（避免初始化时序问题）
+        inputBar.updateTongBanClickListener { toggleTongBan() }
 
+        // popup 必须放在 tongBanContainer 之下，避免覆盖童伴浮窗
         add(
             popup.root,
             lParams(matchParent, matchParent) {
                 centerInParent()
             },
         )
+        // 把 tongBanContainer 移到最上层
+        tongBanContainer.bringToFront()
     }
 
     private fun toggleTongBan() {
         val height = currentKeyboardHeightPx()
+        android.widget.Toast.makeText(themedContext, "童 clicked, h=$height, show=${!tongBanManager.isShowing}", android.widget.Toast.LENGTH_SHORT).show()
         if (tongBanManager.isShowing) {
             tongBanManager.hide()
         } else {

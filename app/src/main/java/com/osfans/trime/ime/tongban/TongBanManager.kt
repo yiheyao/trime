@@ -30,6 +30,7 @@ class TongBanManager(
     private val tongBanService = TongBanService(context)
     private var ui: TongBanDialogUi? = null
     private var controller: TongBanDialogController? = null
+    private var parentContainer: FrameLayout? = null
     private var container: FrameLayout? = null
 
     private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
@@ -43,12 +44,9 @@ class TongBanManager(
      */
     fun setupContainer(parent: FrameLayout) {
         if (container != null) return
+        parentContainer = parent
         val containerLayout = FrameLayout(context).apply {
             visibility = View.GONE
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
         }
         val dialog = TongBanDialogUi(
             context = context,
@@ -58,11 +56,13 @@ class TongBanManager(
         )
         val ctrl = TongBanDialogController(context, dialog, tongBanService)
         ctrl.onClosed = { hide() }
+        // 初始时给对话框一个默认高度，避免 MATCH_PARENT 导致的循环依赖
         containerLayout.addView(
             dialog.root,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
+                dp(160),
+                Gravity.TOP,
             ),
         )
         parent.addView(
@@ -81,24 +81,66 @@ class TongBanManager(
      * 显示浮窗
      */
     fun show(keyboardHeightPx: Int) {
-        val c = container ?: return
-        val u = ui ?: return
-        val ctrl = controller ?: return
+        val c = container ?: run {
+            android.widget.Toast.makeText(context, "container is null", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val u = ui ?: run {
+            android.widget.Toast.makeText(context, "ui is null", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val ctrl = controller ?: run {
+            android.widget.Toast.makeText(context, "ctrl is null", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
         // 浮窗高度 = 键盘高度 * 2/5
         val dialogHeight = (keyboardHeightPx * 2 / 5).coerceAtLeast(dp(160))
         u.setMaxHeight(dialogHeight)
-        // 调整容器内浮窗 view 的高度
+        // 调整容器内浮窗 view 的高度和位置
         val flp = (u.root.layoutParams as? FrameLayout.LayoutParams)
             ?: FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
+                dp(160),
+                Gravity.TOP,
             )
         flp.height = dialogHeight
+        flp.width = FrameLayout.LayoutParams.MATCH_PARENT
         flp.gravity = Gravity.TOP
         u.root.layoutParams = flp
         ctrl.open()
+        parentContainer?.visibility = View.VISIBLE
+        // 动态设置外层容器高度 = 弹窗高度
+        val parentLp = parentContainer?.layoutParams
+        if (parentLp != null) {
+            parentLp.height = dialogHeight
+            parentContainer?.layoutParams = parentLp
+        }
         c.visibility = View.VISIBLE
+        u.root.visibility = View.VISIBLE
+        c.bringToFront()
+        c.requestLayout()
+        u.root.requestLayout()
         isShowing = true
+        // 调试：监听 layout 完成后再读尺寸
+        u.root.addOnLayoutChangeListener(object : android.view.View.OnLayoutChangeListener {
+            private var reported = false
+            override fun onLayoutChange(
+                v: android.view.View,
+                l: Int, t: Int, r: Int, b: Int,
+                ol: Int, ot: Int, orr: Int, ob: Int,
+            ) {
+                if (!reported && v.width > 0 && v.height > 0) {
+                    reported = true
+                    val loc = IntArray(2).also { v.getLocationOnScreen(it) }
+                    android.widget.Toast.makeText(
+                        context,
+                        "show OK, dh=$dialogHeight, real=${v.width}x${v.height}, xy=(${loc[0]},${loc[1]})",
+                        android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                    v.removeOnLayoutChangeListener(this)
+                }
+            }
+        })
     }
 
     /**
