@@ -94,7 +94,7 @@ class TongBanManager(
             return
         }
         // 浮窗高度 = 键盘高度 * 2/5
-        val dialogHeight = (keyboardHeightPx * 2 / 5).coerceAtLeast(dp(160))
+        val dialogHeight = (keyboardHeightPx * 2 / 5).coerceAtLeast(dp(110))
         u.setMaxHeight(dialogHeight)
         // 调整容器内浮窗 view 的高度和位置
         val flp = (u.root.layoutParams as? FrameLayout.LayoutParams)
@@ -120,6 +120,15 @@ class TongBanManager(
         c.bringToFront()
         c.requestLayout()
         u.root.requestLayout()
+        // 关键：强制刷新 IME 输入连接，使后续键盘输入路由到弹窗的 EditText，而不是原 WeChat 的输入框
+        try {
+            u.inputEditText.post {
+                u.inputEditText.requestFocus()
+                val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
+                    as? android.view.inputmethod.InputMethodManager
+                imm?.restartInput(u.inputEditText)
+            }
+        } catch (_: Throwable) { }
         isShowing = true
         // 调试：监听 layout 完成后再读尺寸
         u.root.addOnLayoutChangeListener(object : android.view.View.OnLayoutChangeListener {
