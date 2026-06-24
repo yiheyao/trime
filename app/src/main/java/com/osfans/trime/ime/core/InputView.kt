@@ -157,6 +157,7 @@ class InputView(
 
         keyboardView =
             constraintLayout {
+                id = R.id.keyboard_view
                 isMotionEventSplittingEnabled = true
                 add(
                     keyboardBackground,
@@ -231,7 +232,7 @@ class InputView(
             },
         )
 
-        // 童伴浮窗容器：紧贴 keyboardView 上方（仅覆盖键盘顶部区域，不延伸到屏幕）
+        // 童伴浮窗容器：覆盖在 keyboardView 顶部（覆盖工具栏和部分按键，在键盘内部）
         val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
             visibility = View.GONE
         }
@@ -239,7 +240,7 @@ class InputView(
             tongBanContainer,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
-                above(keyboardView)
+                topToTopOf(keyboardView)
             },
         )
         tongBanManager.setupContainer(tongBanContainer)

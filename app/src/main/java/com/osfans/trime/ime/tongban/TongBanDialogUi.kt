@@ -124,6 +124,8 @@ class TongBanDialogUi(
             setTextColor(Color.parseColor("#222222"))
             imeOptions = EditorInfo.IME_ACTION_DONE
             setPadding(dp(8), dp(6), dp(8), dp(6))
+            // 关键：避免 EditText 抢焦点后触发 InputMethodService 重新创建 InputView
+            setShowSoftInputOnFocus(false)
         }
         queryButton = Button(context).apply {
             text = "查询"
