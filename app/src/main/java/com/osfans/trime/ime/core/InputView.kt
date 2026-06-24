@@ -19,6 +19,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import com.osfans.trime.core.CompositionProto
 import com.osfans.trime.core.RimeMessage
+import com.osfans.trime.R
 import com.osfans.trime.daemon.RimeSession
 import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.theme.ColorManager
@@ -240,7 +241,7 @@ class InputView(
             tongBanContainer,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
-                topToTopOf(keyboardView)
+                topToTop = R.id.keyboard_view
             },
         )
         tongBanManager.setupContainer(tongBanContainer)
