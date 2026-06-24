@@ -1,1 +1,1 @@
-../../../../data/rime/essay/essay.txt
+D:/project/andriod/trime/app/data/rime/essay/essay.txt
