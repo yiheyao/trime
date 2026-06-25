@@ -37,6 +37,7 @@ import com.osfans.trime.ime.popup.PopupDelegate
 import com.osfans.trime.ime.symbol.LiquidWindow
 import com.osfans.trime.ime.tongban.TongBanManager
 import com.osfans.trime.ime.window.BoardWindowManager
+import com.osfans.trime.BuildConfig
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.kodein.di.instance
@@ -265,7 +266,13 @@ class InputView(
 
     private fun toggleTongBan() {
         val height = currentKeyboardHeightPx()
-        android.widget.Toast.makeText(themedContext, "童 clicked, h=$height, show=${!tongBanManager.isShowing}", android.widget.Toast.LENGTH_SHORT).show()
+        if (BuildConfig.DEBUG) {
+            android.widget.Toast.makeText(
+                themedContext,
+                "童 clicked, h=$height, show=${!tongBanManager.isShowing}",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
+        }
         if (tongBanManager.isShowing) {
             tongBanManager.hide()
         } else {

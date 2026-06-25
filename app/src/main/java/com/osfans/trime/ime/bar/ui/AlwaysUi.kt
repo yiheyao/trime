@@ -18,6 +18,7 @@ import com.osfans.trime.R
 import com.osfans.trime.data.theme.ColorManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.data.theme.model.ToolBar
+import com.osfans.trime.BuildConfig
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.after
 import splitties.views.dsl.constraintlayout.before
@@ -68,7 +69,9 @@ class AlwaysUi(
         contentDescription = "tongban"
         setOnClickListener {
             Timber.d("童 button clicked")
-            android.widget.Toast.makeText(ctx, "童 clicked", android.widget.Toast.LENGTH_SHORT).show()
+            if (BuildConfig.DEBUG) {
+                android.widget.Toast.makeText(ctx, "童 clicked", android.widget.Toast.LENGTH_SHORT).show()
+            }
             _onTongBanClick?.invoke()
         }
     }

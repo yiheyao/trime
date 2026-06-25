@@ -12,6 +12,7 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
+import com.osfans.trime.BuildConfig
 import timber.log.Timber
 
 /**
@@ -29,6 +30,8 @@ class TongBanDialogController(
     private var currentRequest: TongBanRequest? = null
     private var querying = false
     private var lastNetworkType: String? = null
+    /** 当前 pending 提示的回调，响应到达后或取消时需要清掉 */
+    private var pendingHandler: Runnable? = null
 
     init {
         ui.queryButton.setOnClickListener { onQueryClick() }
@@ -46,6 +49,8 @@ class TongBanDialogController(
         querying = false
         currentRequest?.cancel()
         currentRequest = null
+        pendingHandler?.let { mainHandler.removeCallbacks(it) }
+        pendingHandler = null
     }
 
     /** 关闭浮窗（取消进行中的请求、重置 session） */
@@ -62,6 +67,9 @@ class TongBanDialogController(
     fun cancelRequest() {
         currentRequest?.cancel()
         currentRequest = null
+        // 取消 pending 预提示，避免延迟弹"思考中…"
+        pendingHandler?.let { mainHandler.removeCallbacks(it) }
+        pendingHandler = null
         querying = false
     }
 
@@ -73,8 +81,23 @@ class TongBanDialogController(
         lastNetworkType = currentNetworkType()
     }
 
+    /**
+     * 仅在 Debug 版本打印 / 弹出调试信息。
+     * - Timber.i/d 包在这里 → Release 完全不调用，零开销。
+     * - Toast 同样在 Release 屏蔽，避免影响用户。
+     */
+    private fun debugToast(text: String) {
+        if (!BuildConfig.DEBUG) return
+        showToastAtTop(text)
+    }
+
+    private fun debugLog(format: String, vararg args: Any?) {
+        if (!BuildConfig.DEBUG) return
+        Timber.tag("TongBan").i(format, *args)
+    }
+
     private fun onQueryClick() {
-        Timber.tag("TongBan").i("onQueryClick")
+        debugLog("onQueryClick")
         // 点击查询时震动一下，给用户查询的体感反馈
         performQueryHaptic()
         if (querying) {
@@ -83,7 +106,7 @@ class TongBanDialogController(
         }
         val raw = ui.getInputText()
         val cleaned = cleanInput(raw)
-        Timber.tag("TongBan").i("onQueryClick raw='%s' cleaned='%s'", raw, cleaned)
+        debugLog("onQueryClick raw='%s' cleaned='%s'", raw, cleaned)
         if (cleaned.isEmpty()) {
             showToastAtTop("请输入问题")
             return
@@ -99,9 +122,21 @@ class TongBanDialogController(
         lastNetworkType = nowType
 
         querying = true
-        showToastAtTop("查询中… cleaned='$cleaned'")
+        debugToast("查询中… cleaned='$cleaned'")
         val request = TongBanNetworkClient.newRequest()
         currentRequest = request
+
+        // 1 秒内没拿到响应 → 在响应框显示"思考中…"预提示；
+        // 如果 < 1s 就回来了，pendingRunnable 会被 cancel 掉。
+        val pendingRunnable = Runnable {
+            if (querying) {
+                ui.showPendingHint(PENDING_HINT)
+            }
+        }
+        pendingHandler = pendingRunnable
+        mainHandler.removeCallbacks(pendingRunnable)
+        mainHandler.postDelayed(pendingRunnable, PENDING_DELAY_MS)
+
         service.sendMessage(cleaned, request, object : TongBanNetworkClient.TongBanCallback {
             override fun onResult(result: TongBanResult) {
                 mainHandler.post {
@@ -118,19 +153,23 @@ class TongBanDialogController(
     }
 
     private fun handleResult(originalText: String, result: TongBanResult) {
+        // 响应到达：清除 pending 预提示
+        pendingHandler?.let { mainHandler.removeCallbacks(it) }
+        pendingHandler = null
         querying = false
         currentRequest = null
-        Timber.tag("TongBan").i("handleResult %s", result.javaClass.simpleName)
+        debugLog("handleResult %s", result.javaClass.simpleName)
         when (result) {
             is TongBanResult.Success -> {
                 val resp = service.parseSuccess(result.body)
-                Timber.tag("TongBan").i("Success body=%s", result.body)
+                debugLog("Success body=%s", result.body)
                 if (resp == null || resp.response.isBlank()) {
                     showToastAtTop("服务器返回为空")
+                    ui.showResponse("（服务器返回为空）")
                 } else {
-                    // 成功响应写入弹窗内的响应框，可滚动可选择/复制
-                    ui.showResponse(resp.response)
-                    showToastAtTop("响应: ${resp.response.take(50)}")
+                    // 成功响应：打字机流式输出到响应框
+                    ui.showResponseStream(resp.response)
+                    debugToast("响应: ${resp.response.take(50)}")
                 }
             }
             is TongBanResult.Unauthorized -> {
@@ -232,5 +271,8 @@ class TongBanDialogController(
 
     companion object {
         const val MAX_INPUT_CHARS = 200
+        /** 1s 内没拿到响应就先在响应框显示预提示 */
+        const val PENDING_DELAY_MS = 1000L
+        const val PENDING_HINT = "🤔 正在思考中…"
     }
 }

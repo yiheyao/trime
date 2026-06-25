@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputConnection
 import android.widget.FrameLayout
+import com.osfans.trime.BuildConfig
 import com.osfans.trime.ime.dependency.InputDependencyManager
 import org.kodein.di.instance
 import timber.log.Timber
@@ -168,12 +169,14 @@ class TongBanManager(
             ) {
                 if (!reported && v.width > 0 && v.height > 0) {
                     reported = true
-                    val loc = IntArray(2).also { v.getLocationOnScreen(it) }
-                    android.widget.Toast.makeText(
-                        context,
-                        "弹窗 ${v.width}x${v.height}, y=${loc[1]}",
-                        android.widget.Toast.LENGTH_LONG,
-                    ).show()
+                    if (BuildConfig.DEBUG) {
+                        val loc = IntArray(2).also { v.getLocationOnScreen(it) }
+                        android.widget.Toast.makeText(
+                            context,
+                            "弹窗 ${v.width}x${v.height}, y=${loc[1]}",
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    }
                     v.removeOnLayoutChangeListener(this)
                 }
             }

@@ -49,6 +49,9 @@ class TongBanDialogUi(
 
     val root: FrameLayout
 
+    /** 当前打字机流式输出的 Handler；切换查询/关闭弹窗时清空 */
+    private var streamHandler: android.os.Handler? = null
+
     init {
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -272,8 +275,9 @@ class TongBanDialogUi(
         inputPlaceholder.visibility = if (hasText) View.GONE else View.VISIBLE
     }
 
-    /** 显示响应内容 */
+    /** 显示响应内容（一次性赋值） */
     fun showResponse(text: String) {
+        cancelStream()
         responseText.text = text
         responseScroll.visibility = View.VISIBLE
         insertButton.visibility = View.VISIBLE
@@ -283,8 +287,69 @@ class TongBanDialogUi(
         }
     }
 
+    /**
+     * 打字机式流式输出响应内容。
+     * - 每 [intervalMs] 追加若干字符（按汉字/ASCII 智能计 1 字 = 1 步）
+     * - 期间可被 [cancelStream] 中断（新的查询或取消时）
+     * - 完成后自动滚到底部
+     */
+    fun showResponseStream(
+        text: String,
+        intervalMs: Long = 20L,
+        charsPerTick: Int = 2,
+    ) {
+        cancelStream()
+        if (text.isEmpty()) {
+            showResponse("")
+            return
+        }
+        responseText.text = ""
+        responseScroll.visibility = View.VISIBLE
+        insertButton.visibility = View.VISIBLE
+        streamHandler?.removeCallbacksAndMessages(null)
+        val h = android.os.Handler(android.os.Looper.getMainLooper())
+        streamHandler = h
+        var idx = 0
+        val n = text.length
+        val step = charsPerTick.coerceAtLeast(1)
+        h.postDelayed(object : Runnable {
+            override fun run() {
+                // 如果中途被替换（新的流/新查询）直接退出
+                if (streamHandler !== h) return
+                if (idx >= n) {
+                    responseScroll.post {
+                        responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
+                    }
+                    return
+                }
+                val end = (idx + step).coerceAtMost(n)
+                responseText.append(text.substring(idx, end))
+                idx = end
+                h.postDelayed(this, intervalMs)
+            }
+        }, intervalMs)
+    }
+
+    /** 中断当前的打字机流式输出（如果有） */
+    fun cancelStream() {
+        streamHandler?.removeCallbacksAndMessages(null)
+        streamHandler = null
+    }
+
+    /**
+     * 在响应框内显示"思考中…"占位内容，1s 内还没结果就用这个给用户预提示。
+     * 真正的响应到达后会被 [showResponse] / [showResponseStream] 覆盖。
+     */
+    fun showPendingHint(hint: String) {
+        cancelStream()
+        responseText.text = hint
+        responseScroll.visibility = View.VISIBLE
+        insertButton.visibility = View.GONE
+    }
+
     /** 隐藏响应框 */
     fun hideResponse() {
+        cancelStream()
         responseScroll.visibility = View.GONE
         insertButton.visibility = View.GONE
         responseText.text = ""
