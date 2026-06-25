@@ -32,6 +32,11 @@ class TongBanDialogController(
     private var lastNetworkType: String? = null
     /** 当前 pending 提示的回调，响应到达后或取消时需要清掉 */
     private var pendingHandler: Runnable? = null
+    /**
+     * 查询发起回调：onQueryClick 成功提交后触发，Manager 收到后
+     * 会通过 InputView 隐藏键盘，使弹窗独占 IME 区域。
+     */
+    var onQueryStarted: (() -> Unit)? = null
 
     init {
         ui.queryButton.setOnClickListener { onQueryClick() }
@@ -136,6 +141,9 @@ class TongBanDialogController(
         pendingHandler = pendingRunnable
         mainHandler.removeCallbacks(pendingRunnable)
         mainHandler.postDelayed(pendingRunnable, PENDING_DELAY_MS)
+
+        // 通知 Manager 隐藏键盘，让弹窗独占 IME 区域
+        onQueryStarted?.invoke()
 
         service.sendMessage(cleaned, request, object : TongBanNetworkClient.TongBanCallback {
             override fun onResult(result: TongBanResult) {

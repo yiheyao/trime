@@ -71,6 +71,17 @@ class TongBanManager(
         private set
 
     /**
+     * 查询提交回调：点击"查询"按钮后由 controller 触发，InputView 收到后隐藏键盘。
+     * 弹窗关闭时由 [hide] 触发 InputView 恢复键盘。
+     */
+    var onQuerySubmitted: (() -> Unit)? = null
+
+    /**
+     * 弹窗关闭回调：弹窗从显示变为隐藏时触发，InputView 收到后恢复键盘显示。
+     */
+    var onDialogClosed: (() -> Unit)? = null
+
+    /**
      * 初始化容器和 UI
      */
     fun setupContainer(parent: FrameLayout) {
@@ -87,6 +98,10 @@ class TongBanManager(
         )
         val ctrl = TongBanDialogController(context, dialog, tongBanService)
         ctrl.onClosed = { hide() }
+        // 桥接 controller → manager：点击查询后通知 InputView 隐藏键盘
+        ctrl.onQueryStarted = {
+            onQuerySubmitted?.invoke()
+        }
         // 初始时给对话框一个默认高度，避免 MATCH_PARENT 导致的循环依赖
         containerLayout.addView(
             dialog.root,
@@ -199,9 +214,12 @@ class TongBanManager(
         }
         // 隐藏外层容器（不影响 IME 高度）
         parentContainer?.visibility = View.GONE
+        val wasShowing = isShowing
         isShowing = false
         // 弹窗关闭后重新布局，让 onComputeInsets 把 touchable region 收回 keyboardView
         service.inputViewPublic?.requestLayout()
+        // 通知 InputView 恢复键盘
+        if (wasShowing) onDialogClosed?.invoke()
     }
 
     /** 切换显示 */

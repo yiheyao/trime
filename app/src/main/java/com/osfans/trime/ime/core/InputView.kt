@@ -251,6 +251,10 @@ class InputView(
         tongBanManager.setupContainer(tongBanContainer)
         // 显式设置童按钮回调（避免初始化时序问题）
         inputBar.updateTongBanClickListener { toggleTongBan() }
+        // 点击查询后：隐藏键盘，让弹窗 + 响应框独占 IME 区域
+        tongBanManager.onQuerySubmitted = { setKeyboardVisible(false) }
+        // 弹窗关闭时：恢复键盘
+        tongBanManager.onDialogClosed = { setKeyboardVisible(true) }
 
         // popup 必须放在 tongBanContainer 之下，避免覆盖童伴浮窗
         add(
@@ -285,6 +289,23 @@ class InputView(
         } catch (e: Exception) {
             dp(280)
         }
+    }
+
+    /**
+     * 切换 keyboardView 区域的可见性。
+     * 隐藏时 keyboardView 整体 GONE → IME 高度收缩到只剩弹窗高度，
+     * 弹窗（above(keyboardView)）因 keyboardView 高度为 0 自然贴到 IME 底部；
+     * 显示时恢复 keyboardView，弹窗回到"紧贴键盘上方"。
+     */
+    private fun setKeyboardVisible(visible: Boolean) {
+        // 隐藏时连同内部所有子 view（含 inputBar、windowManager.view、padding spaces）
+        // 一起 GONE，IME 整体高度收缩到弹窗高度。
+        keyboardView.visibility = if (visible) View.VISIBLE else View.GONE
+        // preedit 候选条紧贴 keyboardView 上方，也要随键盘一起隐藏
+        preedit.ui.root.visibility = if (visible) View.VISIBLE else View.GONE
+        requestLayout()
+        // onComputeInsets 依赖 measure/layout，重新计算 touchable region
+        invalidate()
     }
 
     private fun updateKeyboardSize() {
