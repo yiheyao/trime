@@ -369,9 +369,13 @@ class InputView(
             duration = 220L
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
+                val h = anim.animatedValue as Int
                 val lp = keyboardView.layoutParams as ConstraintLayout.LayoutParams
-                lp.height = anim.animatedValue as Int
+                lp.height = h
                 keyboardView.layoutParams = lp
+                // 同步驱动童伴弹窗高度跟随 keyboardView 变化（弹窗 + 键盘 = 恒定高度，
+                // 避免弹窗直接跳到全高导致 IME 窗口突然增高露出"白框"）
+                tongBanManager.syncDialogHeight(h)
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {

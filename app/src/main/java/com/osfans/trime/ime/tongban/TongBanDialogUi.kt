@@ -196,9 +196,9 @@ class TongBanDialogUi(
         // 响应框：ScrollView + TextView（状态 2 时显示）
         responseText = TextView(context).apply {
             text = ""
-            setTextColor(Color.parseColor("#222222"))
+            setTextColor(Color.parseColor("#000000"))
             textSize = 14f
-            setPadding(dp(16), dp(10), dp(16), dp(10))
+            setPadding(dp(16), dp(12), dp(16), dp(12))
             setTextIsSelectable(true) // 允许选择/复制
         }
         responseScroll = ScrollView(context).apply {
@@ -365,7 +365,7 @@ class TongBanDialogUi(
                 container,
                 FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
                 ),
             )
         }
@@ -383,7 +383,7 @@ class TongBanDialogUi(
     fun showResponse(text: String) {
         cancelStream()
         responseText.text = text
-        responseText.setTextColor(Color.parseColor("#222222"))
+        responseText.setTextColor(Color.parseColor("#000000"))
         // 自动滚到底部
         responseScroll.post {
             responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
@@ -407,6 +407,8 @@ class TongBanDialogUi(
             return
         }
         responseText.text = ""
+        // 流式输出文字颜色强制为黑色（避免之前 pending hint 留下的灰色）
+        responseText.setTextColor(Color.parseColor("#000000"))
         streamHandler?.removeCallbacksAndMessages(null)
         val h = android.os.Handler(android.os.Looper.getMainLooper())
         streamHandler = h
@@ -480,7 +482,7 @@ class TongBanDialogUi(
     fun hideResponse() {
         cancelStream()
         responseText.text = ""
-        responseText.setTextColor(Color.parseColor("#222222"))
+        responseText.setTextColor(Color.parseColor("#000000"))
         hideResponseArea()
     }
 

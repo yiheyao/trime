@@ -215,15 +215,28 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                                 val keyCode = it.value.keyCode
                                 if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                                     // recognized keyCode
-                                    sendDownUpKeyEvent(
-                                        keyCode,
-                                        it.modifiers.metaState or meta(
-                                            alt = it.modifiers.alt,
-                                            shift = it.modifiers.shift,
-                                            ctrl = it.modifiers.ctrl,
-                                            meta = it.modifiers.meta,
-                                        ),
-                                    )
+                                    // 童伴弹窗打开时，把按键路由到弹窗输入框，不走系统的 sendDownUpKeyEvent
+                                    if (TongBanManager.isShowingAndFocused()) {
+                                        val ch = keyCodeToChar(keyCode)
+                                        if (ch != null) {
+                                            commitText(ch.toString())
+                                        } else if (keyCode == KeyEvent.KEYCODE_SPACE) {
+                                            commitText(" ")
+                                        } else {
+                                            // 不可映射字符（如方向键、功能键）转发到弹窗处理
+                                            TongBanManager.deleteLastChar()
+                                        }
+                                    } else {
+                                        sendDownUpKeyEvent(
+                                            keyCode,
+                                            it.modifiers.metaState or meta(
+                                                alt = it.modifiers.alt,
+                                                shift = it.modifiers.shift,
+                                                ctrl = it.modifiers.ctrl,
+                                                meta = it.modifiers.meta,
+                                            ),
+                                        )
+                                    }
                                     if (it.modifiers.ctrl && keyCode == KeyEvent.KEYCODE_C) clearTextSelection()
                                 } else {
                                     if (it.value.value > 0) {
@@ -240,11 +253,22 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                         val keyCode = it.value.keyCode
                         if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                             // recognized keyCode
-                            val eventTime = SystemClock.uptimeMillis()
-                            if (it.modifiers.release) {
-                                sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                            // 童伴弹窗打开时，把按键路由到弹窗输入框，不走系统的 sendDownKey/UpKeyEvent
+                            if (TongBanManager.isShowingAndFocused()) {
+                                val ch = keyCodeToChar(keyCode)
+                                if (ch != null && !it.modifiers.release) {
+                                    commitText(ch.toString())
+                                } else if (keyCode == KeyEvent.KEYCODE_SPACE && !it.modifiers.release) {
+                                    commitText(" ")
+                                }
+                                // 不可映射或 release 事件忽略（弹窗用 TextView，不需要 key up）
                             } else {
-                                sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                                val eventTime = SystemClock.uptimeMillis()
+                                if (it.modifiers.release) {
+                                    sendUpKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                                } else {
+                                    sendDownKeyEvent(eventTime, keyCode, it.modifiers.metaState)
+                                }
                             }
                         } else {
                             if (!it.modifiers.release && it.value.value > 0) {
@@ -325,6 +349,67 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
                 else -> currentInputConnection.performEditorAction(action)
             }
+        }
+    }
+
+    /**
+     * 把 Android KeyEvent 的 keyCode 转换为字符（用于童伴弹窗的字符输入路由）。
+     * - 字母/数字：根据 modifiers.shift 返回大小写
+     * - 标点：根据 shift 返回两种符号
+     * - 其他（方向键、功能键、SPACE）返回 null，由调用方特殊处理
+     */
+    private fun keyCodeToChar(keyCode: Int): Char? {
+        val shift = false // shift 状态由 Rime 引擎处理，此处只返回基础字符
+        return when (keyCode) {
+            KeyEvent.KEYCODE_A -> if (shift) 'A' else 'a'
+            KeyEvent.KEYCODE_B -> if (shift) 'B' else 'b'
+            KeyEvent.KEYCODE_C -> if (shift) 'C' else 'c'
+            KeyEvent.KEYCODE_D -> if (shift) 'D' else 'd'
+            KeyEvent.KEYCODE_E -> if (shift) 'E' else 'e'
+            KeyEvent.KEYCODE_F -> if (shift) 'F' else 'f'
+            KeyEvent.KEYCODE_G -> if (shift) 'G' else 'g'
+            KeyEvent.KEYCODE_H -> if (shift) 'H' else 'h'
+            KeyEvent.KEYCODE_I -> if (shift) 'I' else 'i'
+            KeyEvent.KEYCODE_J -> if (shift) 'J' else 'j'
+            KeyEvent.KEYCODE_K -> if (shift) 'K' else 'k'
+            KeyEvent.KEYCODE_L -> if (shift) 'L' else 'l'
+            KeyEvent.KEYCODE_M -> if (shift) 'M' else 'm'
+            KeyEvent.KEYCODE_N -> if (shift) 'N' else 'n'
+            KeyEvent.KEYCODE_O -> if (shift) 'O' else 'o'
+            KeyEvent.KEYCODE_P -> if (shift) 'P' else 'p'
+            KeyEvent.KEYCODE_Q -> if (shift) 'Q' else 'q'
+            KeyEvent.KEYCODE_R -> if (shift) 'R' else 'r'
+            KeyEvent.KEYCODE_S -> if (shift) 'S' else 's'
+            KeyEvent.KEYCODE_T -> if (shift) 'T' else 't'
+            KeyEvent.KEYCODE_U -> if (shift) 'U' else 'u'
+            KeyEvent.KEYCODE_V -> if (shift) 'V' else 'v'
+            KeyEvent.KEYCODE_W -> if (shift) 'W' else 'w'
+            KeyEvent.KEYCODE_X -> if (shift) 'X' else 'x'
+            KeyEvent.KEYCODE_Y -> if (shift) 'Y' else 'y'
+            KeyEvent.KEYCODE_Z -> if (shift) 'Z' else 'z'
+            KeyEvent.KEYCODE_0 -> if (shift) ')' else '0'
+            KeyEvent.KEYCODE_1 -> if (shift) '!' else '1'
+            KeyEvent.KEYCODE_2 -> if (shift) '@' else '2'
+            KeyEvent.KEYCODE_3 -> if (shift) '#' else '3'
+            KeyEvent.KEYCODE_4 -> if (shift) '$' else '4'
+            KeyEvent.KEYCODE_5 -> if (shift) '%' else '5'
+            KeyEvent.KEYCODE_6 -> if (shift) '^' else '6'
+            KeyEvent.KEYCODE_7 -> if (shift) '&' else '7'
+            KeyEvent.KEYCODE_8 -> if (shift) '*' else '8'
+            KeyEvent.KEYCODE_9 -> if (shift) '(' else '9'
+            KeyEvent.KEYCODE_SPACE -> ' '
+            KeyEvent.KEYCODE_PERIOD -> if (shift) '>' else '.'
+            KeyEvent.KEYCODE_COMMA -> if (shift) '<' else ','
+            KeyEvent.KEYCODE_SLASH -> if (shift) '?' else '/'
+            KeyEvent.KEYCODE_SEMICOLON -> if (shift) ':' else ';'
+            KeyEvent.KEYCODE_APOSTROPHE -> if (shift) '"' else '\''
+            KeyEvent.KEYCODE_MINUS -> if (shift) '_' else '-'
+            KeyEvent.KEYCODE_EQUALS -> if (shift) '+' else '='
+            KeyEvent.KEYCODE_GRAVE -> if (shift) '~' else '`'
+            KeyEvent.KEYCODE_LEFT_BRACKET -> if (shift) '{' else '['
+            KeyEvent.KEYCODE_RIGHT_BRACKET -> if (shift) '}' else ']'
+            KeyEvent.KEYCODE_BACKSLASH -> if (shift) '|' else '\\'
+            else -> null
         }
     }
 

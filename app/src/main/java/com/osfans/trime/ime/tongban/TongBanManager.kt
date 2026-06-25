@@ -240,11 +240,9 @@ class TongBanManager(
     /**
      * 展开弹窗到完整高度（状态 2：弹窗 height = 键盘 height，responseScroll 可见）。
      * - 调用时机：用户点击"查询"后，由 InputView.setKeyboardVisible(false) 同步触发。
-     * - 弹窗 height 从 [smallDialogHeight] 动画到 [fullDialogHeight]（= 键盘 height），
-     *   视觉上替换键盘区域；弹窗 50dp → 280dp 与键盘 280dp → 0 同步进行，
-     *   两者最终位置/大小一致，实现"无感切换"。
-     * - 动画过程中响应区 showResponseArea 由 controller 在结果到达时调用；
-     *   这里只负责把 responseScroll 设为 VISIBLE，让 weight=1 分配剩余空间。
+     * - 弹窗 height 跟随 keyboardView height 同步变化，弹窗 + 键盘 = 恒定 fullDialogHeight，
+     *   因此 IME 总高度不变，弹窗始终紧贴 keyboardView 上方覆盖原键盘区域，无"高白框闪烁"。
+     * - 弹窗 root 高度由 InputView 端 keyboardView 动画驱动（[syncDialogHeight] 回调）。
      */
     fun expandToFull() {
         val u = ui ?: return
@@ -256,25 +254,37 @@ class TongBanManager(
         // 显示响应区（让 weight=1 开始分配空间）
         u.showResponseArea()
         isExpanded = true
-        // 弹窗 height 从 smallDialogHeight 动画到 fullDialogHeight
+        // 弹窗 height 初始设为 0（让 InputView 端 keyboardView 高度动画驱动后续变化）
         val flp = root.layoutParams as? FrameLayout.LayoutParams ?: return
         dialogHeightAnim?.cancel()
-        dialogHeightAnim = android.animation.ValueAnimator.ofInt(smallDialogHeight, fullDialogHeight).apply {
-            duration = HEIGHT_ANIM_DURATION_MS
-            interpolator = android.view.animation.DecelerateInterpolator()
-            addUpdateListener {
-                val h = it.animatedValue as Int
-                flp.height = h
-                root.layoutParams = flp
-            }
-            start()
-        }
+        dialogHeightAnim = null
+        flp.height = 0
+        root.layoutParams = flp
+        root.requestLayout()
         if (BuildConfig.DEBUG) {
             android.widget.Toast.makeText(
                 context,
-                "弹窗展开: ${smallDialogHeight}px → ${fullDialogHeight}px",
+                "弹窗展开(跟随键盘) kb_total=${fullDialogHeight}px",
                 android.widget.Toast.LENGTH_SHORT,
             ).show()
+        }
+    }
+
+    /**
+     * 由 InputView 在 keyboardView 高度动画的每一帧调用，让弹窗 height 跟随 keyboardView height：
+     * 弹窗 height = fullDialogHeight - keyboardView.currentHeight
+     * 当 keyboardView 完全收起（height=0）时，弹窗 height = fullDialogHeight（占满原键盘区域）。
+     * 当 keyboardView 完全展开（height=fullDialogHeight）时，弹窗 height = 0。
+     */
+    fun syncDialogHeight(keyboardHeightPx: Int) {
+        if (!isExpanded) return
+        val u = ui ?: return
+        val root = u.root
+        val flp = root.layoutParams as? FrameLayout.LayoutParams ?: return
+        val target = (fullDialogHeight - keyboardHeightPx).coerceIn(0, fullDialogHeight)
+        if (flp.height != target) {
+            flp.height = target
+            root.layoutParams = flp
         }
     }
 
@@ -341,41 +351,30 @@ class TongBanManager(
 
     /**
      * 平滑关闭：弹窗 height 收缩到 0 + 键盘同步展开（无感替换输入法键盘）。
-     * - 弹窗 height 从 [fullDialogHeight]（= 键盘 height）动画到 0，
-     *   与 InputView 端 keyboardView height 0 → fullKeyboardHeight 展开动画同步进行；
+     * - 弹窗 height 由 [syncDialogHeight] 跟随 keyboardView 高度反向变化：
+     *   keyboardView 高度从 0 → fullKeyboardHeight 时，弹窗 height 从 fullDialogHeight → 0，
      *   两者最终位置/大小一致（弹窗消失 = 键盘显示），实现"无感替换"。
      * - 弹窗 height 收为 0 后由 [hide] 兜底：visibility = GONE、alpha 复位、height 重置为 smallDialogHeight。
      */
     fun dismissAndRestore() {
         val u = ui ?: return hide()
         if (!isShowing) return
-        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画）
+        // 先停掉自身的 height 动画（弹窗 height 现在由 syncDialogHeight 跟随 keyboardView）
+        dialogHeightAnim?.cancel()
+        dialogHeightAnim = null
+        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画），
+        // 弹窗 height 会通过 syncDialogHeight 自动同步减少
         onDialogClosed?.invoke()
-        // 弹窗 height 收缩到 0（与键盘展开同步），结束后 alpha 淡出 + hide
         if (isExpanded) {
-            // 展开态：height 动画到 0（与键盘展开同步）
-            dialogHeightAnim?.cancel()
-            val flp = u.root.layoutParams as? FrameLayout.LayoutParams
-            if (flp != null) {
-                val startH = if (u.root.height > 0) u.root.height else fullDialogHeight
-                dialogHeightAnim = android.animation.ValueAnimator.ofInt(startH, 0).apply {
-                    duration = HEIGHT_ANIM_DURATION_MS
-                    interpolator = android.view.animation.DecelerateInterpolator()
-                    addUpdateListener {
-                        val h = (it.animatedValue as Int).coerceAtLeast(0)
-                        flp.height = h
-                        u.root.layoutParams = flp
-                    }
-                    addListener(object : android.animation.AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(animation: android.animation.Animator) {
-                            hide()
-                        }
-                    })
-                    start()
-                }
-            } else {
-                u.animateClose { hide() }
-            }
+            // 展开态：弹窗 height 由 syncDialogHeight 跟随 keyboardView 减少，
+            // 等动画结束后才真正 hide。
+            val startH = if (u.root.height > 0) u.root.height else fullDialogHeight
+            // 用一个等待 runnable：等弹窗高度归零后再 hide（通常 ~220ms）
+            val h = android.os.Handler(android.os.Looper.getMainLooper())
+            h.postDelayed({
+                // 此时 syncDialogHeight 已经把弹窗 height 设为 0，inputView 的 keyboardView 也展开到 fullKeyboardHeight
+                hide()
+            }, HEIGHT_ANIM_DURATION_MS + 20L)
         } else {
             // 未展开（小弹窗）：直接 alpha 淡出
             u.animateClose { hide() }
@@ -384,43 +383,39 @@ class TongBanManager(
 
     /**
      * 从状态 2 收缩回状态 1（点击 ← 返回按钮调用）。
-     * - 弹窗 height 从 fullDialogHeight 动画回 smallDialogHeight（50dp）
-     * - 响应区/工具栏/插入按钮隐藏，inputRow 恢复显示
+     * - 弹窗 height 由 [syncDialogHeight] 跟随 keyboardView 高度变化：
+     *   keyboardView height 从 0 → fullKeyboardHeight 时，弹窗 height 从 fullDialogHeight → 0
+     *   但我们要让弹窗最终停留在 smallDialogHeight（50dp），所以动画结束后手动设回去。
      * - 键盘同步展开（onDialogClosed → setKeyboardVisible(true)），与弹窗收缩同步进行
      * - 响应文本清空（重新查询时不会显示上一次的响应）
      */
     fun collapseToSmall() {
         val u = ui ?: return
         if (!isShowing || !isExpanded) return
-        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画）
-        // 与弹窗收缩同步进行，实现"无感替换"
-        onDialogClosed?.invoke()
-        // 弹窗 height 从 fullDialogHeight 动画到 smallDialogHeight
-        val flp = u.root.layoutParams as? FrameLayout.LayoutParams ?: return
-        val startH = if (u.root.height > 0) u.root.height else fullDialogHeight
+        // 先停掉自身的 height 动画（弹窗 height 由 syncDialogHeight 跟随 keyboardView）
         dialogHeightAnim?.cancel()
-        dialogHeightAnim = android.animation.ValueAnimator.ofInt(startH, smallDialogHeight).apply {
-            duration = HEIGHT_ANIM_DURATION_MS
-            interpolator = android.view.animation.DecelerateInterpolator()
-            addUpdateListener {
-                val h = it.animatedValue as Int
-                flp.height = h
+        dialogHeightAnim = null
+        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画），
+        // 弹窗 height 通过 syncDialogHeight 自动从 fullDialogHeight → 0
+        onDialogClosed?.invoke()
+        // 动画结束后（约 220ms）：清空响应内容 + 弹窗 height 恢复 smallDialogHeight + 恢复 inputRow
+        val h = android.os.Handler(android.os.Looper.getMainLooper())
+        h.postDelayed({
+            controller?.cancelRequest()
+            u.hideResponse()
+            // 动画结束后弹窗 height=0（被 syncDialogHeight 设为 0），
+            // 这里恢复到 smallDialogHeight（50dp）作为状态 1 的初始高度
+            val flp = u.root.layoutParams as? FrameLayout.LayoutParams
+            if (flp != null) {
+                flp.height = smallDialogHeight.takeIf { it > 0 } ?: dp(SMALL_DIALOG_HEIGHT_DP)
                 u.root.layoutParams = flp
             }
-            addListener(object : android.animation.AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: android.animation.Animator) {
-                    // 动画结束后：清空响应内容，恢复 inputRow 可见，isExpanded 置 false
-                    controller?.cancelRequest()
-                    u.hideResponse()
-                    isExpanded = false
-                }
-            })
-            start()
-        }
+            isExpanded = false
+        }, HEIGHT_ANIM_DURATION_MS + 20L)
         if (BuildConfig.DEBUG) {
             android.widget.Toast.makeText(
                 context,
-                "弹窗收缩: ${startH}px → ${smallDialogHeight}px",
+                "弹窗收缩(跟随键盘)",
                 android.widget.Toast.LENGTH_SHORT,
             ).show()
         }
@@ -476,7 +471,8 @@ class TongBanManager(
         // 在 UI 线程执行 append
         tv.post {
             val cur = tv.text?.toString().orEmpty()
-            val cleaned = cleanInput(text)
+            // 只去掉换行/制表符，保留空格（用户在查询输入框可能需要输入空格）
+            val cleaned = text.replace(Regex("[\\r\\n\\t]+"), "")
             if (cleaned.isEmpty()) return@post
             // 限制 200 个汉字长度
             val merged = (cur + cleaned)
