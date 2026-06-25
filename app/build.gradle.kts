@@ -6,6 +6,29 @@
 
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// 加载项目根目录的 local.properties（已在 .gitignore 中，用于存放本地敏感配置如 API URL）。
+// AGP 默认会读 local.properties（sdk.dir 等），但 BuildConfig 字段需要显式注入。
+// 这里手动解析（用 String 行扫描，避免 java.util.Properties 在 kts 中的导入问题）。
+val localPropsFile = rootProject.file("local.properties")
+val tongbanApiBaseUrlFromLocal: String =
+    if (localPropsFile.exists()) {
+        localPropsFile.readLines()
+            .mapNotNull { line ->
+                val s = line.trim()
+                if (s.isEmpty() || s.startsWith("#")) null
+                else {
+                    val idx = s.indexOf('=')
+                    if (idx <= 0) null
+                    else s.substring(0, idx).trim() to s.substring(idx + 1).trim()
+                }
+            }
+            .firstOrNull { it.first == "tongban.api.base_url" }
+            ?.second
+            ?: ""
+    } else {
+        ""
+    }
+
 plugins {
     id("com.osfans.trime.app-convention")
     id("com.osfans.trime.native-app-convention")
@@ -37,6 +60,9 @@ android {
         buildConfigField("String", "BUILD_COMMIT_HASH", "\"${project.buildCommitHash}\"")
         buildConfigField("String", "BUILD_GIT_REPO", "\"${project.buildGitRepo}\"")
         buildConfigField("String", "BUILD_VERSION_NAME", "\"${project.buildVersionName}\"")
+
+        // 童伴 API base URL：从 local.properties 读取（不入 git，避免把 API IP 提交到仓库）
+        buildConfigField("String", "TONGBAN_API_BASE_URL", "\"$tongbanApiBaseUrlFromLocal\"")
     }
 
     base {

@@ -477,7 +477,9 @@ app/src/main/assets/checksums.json
 app/src/main/assets/shared/opencc
 
 # boost
+# 注意：boost 源码包从 app/ 迁到 app/src/main/jni/，要匹配两个位置
 app/boost-*.tar.xz
+app/src/main/jni/boost-*.tar.xz
 app/src/main/jni/boost/
 
 # kotlin

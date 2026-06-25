@@ -125,7 +125,13 @@ class TongBanService(private val context: Context) {
     }
 
     companion object {
-        const val BASE_URL = "http://124.221.113.165:8000/api/chat/"
+        /**
+         * 童伴 API base URL（运行时从 BuildConfig 读取，gradle 从 local.properties 注入）。
+         * - local.properties 不入库（.gitignore 已忽略），可以在本地填入 tongban.api.base_url
+         * - 如果没填，使用空字符串，请求时返回 UnknownError
+         * 这样可以避免把 API 地址（含 IP）提交到 git 仓库。
+         */
+        val BASE_URL: String = com.osfans.trime.BuildConfig.TONGBAN_API_BASE_URL
     }
 }
 
