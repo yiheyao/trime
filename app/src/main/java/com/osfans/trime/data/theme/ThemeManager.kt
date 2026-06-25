@@ -85,6 +85,12 @@ object ThemeManager {
     private fun getThemeById(id: String): ResolvedTheme {
         loadThemeByIdOrNull(id)?.let { return ResolvedTheme(id, it) }
 
+        // 回退：尝试 `<id>.trime` 变体（解决 tongwenfeng.trime.yaml 部署问题）
+        loadThemeByIdOrNull("$id.trime")?.let {
+            Timber.w("Theme '$id' is unavailable, fallback to '$id.trime'")
+            return ResolvedTheme(id, it)
+        }
+
         if (id != "trime") {
             loadThemeByIdOrNull("trime")?.let {
                 Timber.w("Theme '$id' is unavailable, fallback to default theme 'trime'")

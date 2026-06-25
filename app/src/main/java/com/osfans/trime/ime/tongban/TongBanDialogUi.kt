@@ -11,6 +11,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -76,19 +77,46 @@ class TongBanDialogUi(
             isFocusable = true
         }
         // 输入框：使用 TextView（无焦点，避免 IME 重建）
+        // 长按输入框直接从剪贴板粘贴内容（带震动反馈）
         inputEditText = TextView(context).apply {
             text = ""
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
                 cornerRadius = dpF(6f)
+                // 虚线描边，提示用户该区域是"可粘贴"区域
+                setStroke(
+                    dp(1),
+                    Color.parseColor("#BBBBBB"),
+                    dpF(4f),
+                    dpF(4f),
+                )
             }
             setTextColor(Color.parseColor("#222222"))
             textSize = 14f
             setPadding(dp(10), dp(6), dp(10), dp(6))
+            // 长按触发粘贴
+            isLongClickable = true
+            isClickable = false
+            isFocusable = false
+            setOnLongClickListener {
+                // 长按直接粘贴剪贴板内容，不再弹额外的"粘贴"按钮
+                pasteFromClipboard()
+                // 给用户一个长按体感的震动反馈
+                try {
+                    performHapticFeedback(
+                        HapticFeedbackConstants.LONG_PRESS,
+                        HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING or
+                            HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING,
+                    )
+                } catch (e: Exception) {
+                    // ignore
+                }
+                true
+            }
         }
-        // 占位文本
+        // 占位文本：与 inputEditText 同一布局位置，通过 visibility 切换
         inputPlaceholder = TextView(context).apply {
-            text = "请输入您的问题…"
+            text = "长按此处粘贴 / 输入问题…"
             setTextColor(Color.parseColor("#999999"))
             textSize = 14f
             isClickable = false
@@ -200,6 +228,7 @@ class TongBanDialogUi(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
+
         container.addView(
             responseScroll,
             LinearLayout.LayoutParams(
@@ -268,6 +297,8 @@ class TongBanDialogUi(
             val text = clip?.getItemAt(0)?.coerceToText(context)?.toString()
             if (!text.isNullOrBlank()) {
                 inputEditText.text = text.trim()
+                // 刷新按钮状态（查询按钮启用 + 隐藏 placeholder）
+                updateQueryButtonState()
             }
         } catch (e: Exception) {
             // ignore
@@ -278,6 +309,13 @@ class TongBanDialogUi(
 
     fun clearInput() {
         inputEditText.setText("")
+        updateQueryButtonState()
+    }
+
+    /** 隐藏粘贴按钮（已废弃：不再有独立粘贴按钮，保留方法以兼容旧调用） */
+    @Suppress("unused")
+    fun hidePasteButton() {
+        // 不再需要显式隐藏"粘贴"按钮；长按输入框会直接粘贴。
     }
 
     fun setMaxHeight(heightPx: Int) {

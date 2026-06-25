@@ -371,11 +371,6 @@ class CommonKeyboardActionListener {
                 metaState: Int,
             ) {
                 shouldReleaseKey = false
-                // 童伴浮窗打开时，退格键删除弹窗输入框文字
-                if (keyEventCode == KeyEvent.KEYCODE_DEL && com.osfans.trime.ime.tongban.TongBanManager.isShowingAndFocused()) {
-                    com.osfans.trime.ime.tongban.TongBanManager.deleteLastChar()
-                    return
-                }
                 val value =
                     RimeKeyMapping
                         .keyCodeToVal(keyEventCode)
@@ -395,6 +390,14 @@ class CommonKeyboardActionListener {
                     if (processKey(value, modifiers)) {
                         shouldReleaseKey = true
                         Timber.d("handleKey: processKey")
+                        return@postRimeJob
+                    }
+                    // 童伴浮窗打开且 RIME 未消费该 key 时（如拼音已上屏后），
+                    // 退格键用于删除弹窗输入框中的最后一个字符
+                    if (keyEventCode == KeyEvent.KEYCODE_DEL &&
+                        com.osfans.trime.ime.tongban.TongBanManager.isShowingAndFocused()
+                    ) {
+                        com.osfans.trime.ime.tongban.TongBanManager.deleteLastChar()
                         return@postRimeJob
                     }
                     if (AppUtils.launchKeyCategory(service, keyEventCode)) {

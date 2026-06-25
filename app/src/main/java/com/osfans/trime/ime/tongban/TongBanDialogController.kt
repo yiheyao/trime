@@ -6,9 +6,11 @@
 package com.osfans.trime.ime.tongban
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import timber.log.Timber
 
@@ -31,11 +33,7 @@ class TongBanDialogController(
     init {
         ui.queryButton.setOnClickListener { onQueryClick() }
         ui.closeButton.setOnClickListener { onCloseClick() }
-        // 长按输入框可粘贴
-        ui.inputEditText.setOnLongClickListener {
-            ui.pasteFromClipboard()
-            true
-        }
+        // 长按输入框直接粘贴（监听器在 TongBanDialogUi 中绑定）
         recordNetworkType()
     }
 
@@ -44,6 +42,7 @@ class TongBanDialogController(
         service.resetSession()
         ui.clearInput()
         ui.hideResponse()
+        ui.hidePasteButton()
         querying = false
         currentRequest?.cancel()
         currentRequest = null
@@ -55,6 +54,7 @@ class TongBanDialogController(
         service.resetSession()
         ui.clearInput()
         ui.hideResponse()
+        ui.hidePasteButton()
         querying = false
     }
 
@@ -75,6 +75,8 @@ class TongBanDialogController(
 
     private fun onQueryClick() {
         Timber.tag("TongBan").i("onQueryClick")
+        // 点击查询时震动一下，给用户查询的体感反馈
+        performQueryHaptic()
         if (querying) {
             showToastAtTop("查询中，请稍候")
             return
@@ -202,6 +204,29 @@ class TongBanDialogController(
             }
         } catch (e: Exception) {
             "unknown"
+        }
+    }
+
+    /**
+     * 点击查询按钮时的震动反馈。
+     * 优先尝试 HapticFeedbackConstants.CONFIRM（Android 12+），否则回退到 LONG_PRESS。
+     * 使用 View 自身的 performHapticFeedback 不需要额外权限。
+     */
+    private fun performQueryHaptic() {
+        val view = ui.queryButton
+        val hfc =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                HapticFeedbackConstants.CONFIRM
+            } else {
+                HapticFeedbackConstants.KEYBOARD_TAP
+            }
+        try {
+            val flags =
+                HapticFeedbackConstants.FLAG_IGNORE_VIEW_SETTING or
+                    HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING
+            view.performHapticFeedback(hfc, flags)
+        } catch (e: Exception) {
+            // 设备不支持时静默失败，不影响主流程
         }
     }
 
