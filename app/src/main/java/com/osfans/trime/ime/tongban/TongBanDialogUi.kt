@@ -23,9 +23,11 @@ import android.widget.TextView
 /**
  * 童伴智能问题浮窗 UI
  *
- * - 顶部：单行输入（× 输入框 查询）
- * - 下方：可滚动响应框（TextView inside ScrollView），长按复制
- * - 总高度受 IME 限制，响应框最多 200dp，剩余空间给键盘
+ * - 顶部：单行输入（× 输入框 查询）—— 状态 1（"小弹窗"）时只有这一行
+ * - 下方：可滚动响应框（TextView inside ScrollView）—— 状态 2（"大弹窗"）时显示
+ * - 弹窗 height 由 layoutParams.height 决定（[50dp, 280dp]），响应框 weight=1 占满剩余空间
+ * - 状态切换时 TongBanManager 用 ValueAnimator 把弹窗 height 在 50dp ↔ 280dp 之间平滑过渡，
+ *   与 InputView 端 keyboardView 高度动画同步；两者最终高度一致（都 280dp），实现"无感替换"
  */
 class TongBanDialogUi(
     private val context: Context,
@@ -35,9 +37,9 @@ class TongBanDialogUi(
 ) {
     private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
     private fun dpF(v: Float): Float = v * context.resources.displayMetrics.density
-    private val closeAnimHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
-    /** 输入行 */
+    /** 输入行（状态 1 显示，状态 2 隐藏） */
+    val inputRow: LinearLayout
     val inputEditText: TextView
     val inputPlaceholder: TextView
     val queryButton: Button
@@ -46,7 +48,12 @@ class TongBanDialogUi(
     /** 响应框（可滚动） */
     val responseScroll: ScrollView
     val responseText: TextView
-    private val insertButton: Button
+
+    /** 插入按钮（状态 2 显示，状态 1 隐藏） */
+    val insertButton: Button
+
+    /** contentRow 容器：状态 2 显示，承载响应框 + 插入按钮 */
+    private lateinit var contentRowRef: LinearLayout
 
     val root: FrameLayout
 
@@ -54,18 +61,15 @@ class TongBanDialogUi(
     private var streamHandler: android.os.Handler? = null
 
     init {
+        // 弹窗容器：直接占满 IME 底部键盘区域，无 padding/margin/border，
+        // 视觉上与原键盘背景无缝融合。
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                setColor(Color.parseColor("#FAFAFA"))
-                cornerRadius = dpF(8f)
-                setStroke(dp(1), Color.parseColor("#CCCCCC"))
-            }
+            setBackgroundColor(Color.parseColor("#FAFAFA"))
         }
 
-        // 单行：关闭按钮 + 输入框 + 查询按钮
-        val inputRow = LinearLayout(context).apply {
+        // 单行：关闭按钮 + 输入框 + 查询按钮（状态 1 唯一可见区域；状态 2 整体隐藏）
+        inputRow = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), dp(8), dp(10), dp(8))
@@ -103,9 +107,7 @@ class TongBanDialogUi(
             isClickable = false
             isFocusable = false
             setOnLongClickListener {
-                // 长按直接粘贴剪贴板内容，不再弹额外的"粘贴"按钮
                 pasteFromClipboard()
-                // 给用户一个长按体感的震动反馈
                 try {
                     performHapticFeedback(
                         HapticFeedbackConstants.LONG_PRESS,
@@ -184,14 +186,14 @@ class TongBanDialogUi(
             ),
         )
 
-        // 响应框：ScrollView + TextView
+        // 响应框：ScrollView + TextView（状态 2 时显示）
+        // 初始为 GONE：状态 1（点击"童"按钮后）不显示响应区，避免弹窗与键盘之间留空白。
         responseText = TextView(context).apply {
             text = ""
             setTextColor(Color.parseColor("#222222"))
             textSize = 14f
             setPadding(dp(12), dp(10), dp(12), dp(10))
             setTextIsSelectable(true) // 允许选择/复制
-            // 不需要 focusable，避免触发 IME
         }
         responseScroll = ScrollView(context).apply {
             isVerticalScrollBarEnabled = true
@@ -202,30 +204,31 @@ class TongBanDialogUi(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
             )
-            // 初始 GONE（不占空间，弹窗 size 跟随内容变化）
-            visibility = View.GONE
         }
 
-        // 插入按钮：点击后将回复内容插入到聊天输入框
+        // 插入按钮（状态 2 显示在响应区右侧；点击后回调 onInsert 把响应文本写入聊天框）
         insertButton = Button(context).apply {
             text = "插入"
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 setColor(Color.parseColor("#4CAF50"))
-                cornerRadius = dpF(4f)
             }
             setPadding(dp(16), dp(6), dp(16), dp(6))
-            // 初始 GONE（不占空间，弹窗 size 跟随内容变化）
-            visibility = View.GONE
             setOnClickListener {
-                val resp = responseText.text?.toString().orEmpty()
-                if (resp.isNotEmpty()) {
-                    onInsert(resp)
-                }
+                val text = responseText.text?.toString().orEmpty()
+                onInsert(text)
             }
         }
 
+        // 弹窗 root：LinearLayout(vertical)
+        // - inputRow：固定高度 ~50dp（仅状态 1 显示）
+        // - contentRow（horizontal）：状态 2 显示，responseScroll + insertButton
+        //   - responseScroll：weight=1，占满 contentRow 水平剩余空间
+        //   - insertButton：固定在右侧
+        // 状态 1：弹窗 height = 50dp，仅 inputRow 可见，弹窗紧贴键盘上方无空白
+        // 状态 2：弹窗 height = 键盘 height（~280dp），inputRow GONE，
+        //   contentRow 占满整个弹窗高度（响应在左 + 插入按钮在右）
         container.addView(
             inputRow,
             LinearLayout.LayoutParams(
@@ -234,28 +237,39 @@ class TongBanDialogUi(
             ),
         )
 
-        container.addView(
+        // contentRow：响应框（占满）+ 插入按钮（右侧固定宽度）
+        val contentRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+        }
+        contentRow.addView(
             responseScroll,
             LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
-            ).apply {
-                // 默认权重 0（隐藏时不占空间），但可以动态改为有值
-                height = dp(180)
-                topMargin = dp(4)
-            },
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                1f, // weight=1，水平占满剩余空间
+            ),
         )
-        container.addView(
+        contentRow.addView(
             insertButton,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
-                gravity = Gravity.END
-                topMargin = dp(4)
-                bottomMargin = dp(8)
-                marginEnd = dp(12)
+                marginEnd = dp(8)
+                marginStart = dp(4)
             },
+        )
+
+        contentRowRef = contentRow
+        container.addView(
+            contentRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f, // weight=1，垂直占满 inputRow 之下剩余空间
+            ),
         )
 
         root = FrameLayout(context).apply {
@@ -281,11 +295,7 @@ class TongBanDialogUi(
     fun showResponse(text: String) {
         cancelStream()
         responseText.text = text
-        responseText.setTextColor(Color.BLACK)
-        responseScroll.visibility = View.VISIBLE
-        insertButton.visibility = View.VISIBLE
-        insertButton.isEnabled = true
-        insertButton.alpha = 1f
+        responseText.setTextColor(Color.parseColor("#222222"))
         // 自动滚到底部
         responseScroll.post {
             responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
@@ -309,10 +319,6 @@ class TongBanDialogUi(
             return
         }
         responseText.text = ""
-        responseScroll.visibility = View.VISIBLE
-        insertButton.visibility = View.VISIBLE
-        insertButton.isEnabled = true
-        insertButton.alpha = 1f
         streamHandler?.removeCallbacksAndMessages(null)
         val h = android.os.Handler(android.os.Looper.getMainLooper())
         streamHandler = h
@@ -344,23 +350,30 @@ class TongBanDialogUi(
     }
 
     /**
-     * 设置响应区为"请输入问题后点击查询"placeholder 状态（灰色提示文字）。
-     * 弹窗 size 稳定在 fullDialogHeight（包含响应 + 插入按钮），但响应区
-     * 始终 VISIBLE 显示内容（避免出现"中间空白卡片"）。
+     * 显示响应区（状态 1 → 状态 2）。
+     * - 隐藏 inputRow（查询输入条）：查询已提交，输入条不再显示
+     * - 显示 contentRow（响应框 + 插入按钮）
+     * 调用方需保证弹窗 height 已经动画到与键盘一致（通常通过 [TongBanManager.expandToFull]）。
      */
-    fun setPlaceholder() {
-        cancelStream()
-        responseText.text = PLACEHOLDER_HINT
-        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
-        responseScroll.visibility = View.VISIBLE
-        insertButton.visibility = View.VISIBLE
-        insertButton.isEnabled = false
-        insertButton.alpha = 0.45f
+    fun showResponseArea() {
+        contentRowRef.visibility = View.VISIBLE
+        // 状态 2：输入行（含 × / 输入框 / 查询按钮）整体隐藏
+        inputRow.visibility = View.GONE
     }
 
-    /** 内部占位文字 + 灰色 */
-    private val PLACEHOLDER_HINT = "请在上方输入问题，然后点击查询"
-    private val PLACEHOLDER_TEXT_COLOR = Color.parseColor("#9E9E9E")
+    /**
+     * 隐藏响应区（状态 2 → 状态 1 或彻底关闭）。
+     * - 显示 inputRow（恢复输入条）
+     * - 隐藏 contentRow
+     */
+    fun hideResponseArea() {
+        contentRowRef.visibility = View.GONE
+        // 状态 1：输入行可见
+        inputRow.visibility = View.VISIBLE
+    }
+
+    /** 当前响应区是否可见 */
+    fun isResponseAreaVisible(): Boolean = responseScroll.visibility == View.VISIBLE
 
     /**
      * 在响应框内显示"思考中…"占位内容，1s 内还没结果就用这个给用户预提示。
@@ -369,26 +382,18 @@ class TongBanDialogUi(
     fun showPendingHint(hint: String) {
         cancelStream()
         responseText.text = hint
-        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
-        responseScroll.visibility = View.VISIBLE
-        // 插入按钮保持 disabled（响应未到不能点插入）
-        insertButton.visibility = View.VISIBLE
-        insertButton.isEnabled = false
-        insertButton.alpha = 0.45f
+        responseText.setTextColor(Color.parseColor("#9E9E9E"))
     }
 
     /**
-     * 回到 placeholder 状态（用户点 × 关闭弹窗、点插入提交后、查询出错时调用）。
-     * 弹窗 size 保持稳定，仅切换响应文字 + 按钮 enabled。
+     * 隐藏响应框（清空文字 + 重置颜色 + 隐藏响应区）。弹窗 height 由 TongBanManager
+     * 同步收缩到 SMALL_DIALOG_HEIGHT（50dp），responseScroll GONE 后 weight=1 不分配空间。
      */
     fun hideResponse() {
         cancelStream()
-        responseText.text = PLACEHOLDER_HINT
-        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
-        responseScroll.visibility = View.VISIBLE
-        insertButton.visibility = View.VISIBLE
-        insertButton.isEnabled = false
-        insertButton.alpha = 0.45f
+        responseText.text = ""
+        responseText.setTextColor(Color.parseColor("#222222"))
+        hideResponseArea()
     }
 
     fun pasteFromClipboard() {
@@ -420,20 +425,14 @@ class TongBanDialogUi(
     }
 
     fun setMaxHeight(heightPx: Int) {
-        // 单行结构，高度由内容决定，保留方法以兼容旧调用
+        // 弹窗 height 由 TongBanManager 控制，保留方法以兼容旧调用
     }
 
     /**
      * 弹窗关闭动画：只做 alpha 淡出（height 收缩由 TongBanManager.animateDialogHeight
      * 与 InputView 端 keyboardView 高度动画同步进行）。
-     *
-     * 流程：TongBanManager.dismissAndRestore
-     *   1) animateDialogHeight(fullH → 0)  弹窗高度收缩（与键盘展开同步反向）
-     *   2) onDialogClosed → InputView.setKeyboardVisible(true)  键盘 height 0 → fullKeyboardHeight
-     *   3) animateClose { hide() }  弹窗 alpha 1 → 0，完成后 hide() 设 GONE
      */
     fun animateClose(durationMs: Long = 220L, onEnd: () -> Unit) {
-        // 取消任何正在跑的打字机流式输出
         cancelStream()
         val r = root
         r.animate().cancel()

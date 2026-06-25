@@ -260,8 +260,14 @@ class InputView(
         tongBanManager.setupContainer(tongBanContainer)
         // 显式设置童按钮回调（避免初始化时序问题）
         inputBar.updateTongBanClickListener { toggleTongBan() }
-        // 点击查询后：隐藏键盘，让弹窗 + 响应框独占 IME 区域
-        tongBanManager.onQuerySubmitted = { setKeyboardVisible(false) }
+        // 点击查询后：弹窗展开到键盘高度 + 隐藏键盘；两者同步进行实现"无感切换"
+        // - 弹窗 height: 50dp → 280dp（= 键盘 height），responseScroll 同步显示
+        // - keyboardView height: 280dp → 0
+        // - 弹窗与键盘在动画过程中位置/大小完全对称（都在 IME 窗口底部），实现视觉无缝
+        tongBanManager.onQuerySubmitted = {
+            tongBanManager.expandToFull()
+            setKeyboardVisible(false)
+        }
         // 弹窗关闭时：恢复键盘
         tongBanManager.onDialogClosed = { setKeyboardVisible(true) }
 
