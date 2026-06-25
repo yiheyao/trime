@@ -5,10 +5,14 @@
 
 package com.osfans.trime.ime.core
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.os.Build
 import android.view.View
 import android.view.WindowInsets
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.ImageView
@@ -143,6 +147,11 @@ class InputView(
         }
 
     val keyboardView: View
+
+    /** 完整键盘高度（首次 layout 后记录），用于键盘展开/收起动画的目标值 */
+    private var fullKeyboardHeight: Int = -1
+    /** 当前正在跑的键盘高度动画，避免叠加 */
+    private var keyboardHeightAnim: ValueAnimator? = null
 
     init {
         // MUST call before any operation
@@ -292,20 +301,92 @@ class InputView(
     }
 
     /**
-     * 切换 keyboardView 区域的可见性。
-     * 隐藏时 keyboardView 整体 GONE → IME 高度收缩到只剩弹窗高度，
-     * 弹窗（above(keyboardView)）因 keyboardView 高度为 0 自然贴到 IME 底部；
-     * 显示时恢复 keyboardView，弹窗回到"紧贴键盘上方"。
+     * 平滑切换 keyboardView 区域可见性（无感替换输入法键盘）。
+     * 动画期间 keyboardView 高度从 fullKeyboardHeight 渐变到 0（或反向）。
+     * 弹窗约束为 above(keyboardView)，会随 keyboardView 高度变化而自动调整位置——
+     * 视觉上：键盘区域被弹窗无缝"替换"，无突兀感。
+     * 收起前同步隐藏 preedit 候选条；展开后恢复。
      */
     private fun setKeyboardVisible(visible: Boolean) {
-        // 隐藏时连同内部所有子 view（含 inputBar、windowManager.view、padding spaces）
-        // 一起 GONE，IME 整体高度收缩到弹窗高度。
-        keyboardView.visibility = if (visible) View.VISIBLE else View.GONE
-        // preedit 候选条紧贴 keyboardView 上方，也要随键盘一起隐藏
-        preedit.ui.root.visibility = if (visible) View.VISIBLE else View.GONE
-        requestLayout()
-        // onComputeInsets 依赖 measure/layout，重新计算 touchable region
-        invalidate()
+        // 首次进入：若还没记录 fullKeyboardHeight，则用当前 keyboardView 高度作为基准
+        if (fullKeyboardHeight <= 0 && keyboardView.height > 0) {
+            fullKeyboardHeight = keyboardView.height
+        }
+        if (fullKeyboardHeight <= 0) {
+            // 还没 layout 过，直接走 GONE/VISIBLE 兜底
+            keyboardView.visibility = if (visible) View.VISIBLE else View.GONE
+            preedit.ui.root.visibility = if (visible) View.VISIBLE else View.GONE
+            requestLayout()
+            invalidate()
+            return
+        }
+        val targetH = if (visible) fullKeyboardHeight else 0
+        val startH = keyboardView.height
+        if (startH == targetH) {
+            // 已经在目标状态；若需要"彻底隐藏"则置为 GONE 节省 measure 开销
+            if (!visible) {
+                keyboardView.visibility = View.GONE
+            } else if (keyboardView.visibility != View.VISIBLE) {
+                // 关键：若 keyboardView 仍处于 GONE 状态但要求 visible，
+                // 必须先把 visibility 切回 VISIBLE，否则 layoutParams.height 不会生效。
+                keyboardView.visibility = View.VISIBLE
+                val lp = keyboardView.layoutParams as ConstraintLayout.LayoutParams
+                lp.height = fullKeyboardHeight
+                keyboardView.layoutParams = lp
+                requestLayout()
+                invalidate()
+            }
+            return
+        }
+
+        // preedit 候选条在键盘收起时一起淡出（避免弹窗下移过程中还显示候选条）
+        if (!visible) {
+            preedit.ui.root.animate().alpha(0f).setDuration(180L).withEndAction {
+                preedit.ui.root.visibility = View.GONE
+                preedit.ui.root.alpha = 1f
+            }.start()
+        } else {
+            preedit.ui.root.visibility = View.VISIBLE
+            preedit.ui.root.alpha = 1f
+        }
+
+        // 关键：visible=true 时必须先把 keyboardView 切回 VISIBLE，
+        // 否则 GONE 状态下改 layoutParams.height 会被 ConstraintLayout 忽略。
+        if (visible && keyboardView.visibility != View.VISIBLE) {
+            keyboardView.visibility = View.VISIBLE
+        }
+
+        // 取消正在跑的动画（避免叠加）
+        keyboardHeightAnim?.cancel()
+
+        keyboardHeightAnim = ValueAnimator.ofInt(startH, targetH).apply {
+            duration = 220L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val lp = keyboardView.layoutParams as ConstraintLayout.LayoutParams
+                lp.height = anim.animatedValue as Int
+                keyboardView.layoutParams = lp
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (!visible) {
+                        keyboardView.visibility = View.GONE
+                        // 高度收为 0，节省 measure
+                        val lp = keyboardView.layoutParams as ConstraintLayout.LayoutParams
+                        lp.height = 0
+                        keyboardView.layoutParams = lp
+                    } else {
+                        // 恢复到记录的完整高度（不依赖 wrap_content 重新 measure，避免高度跳变）
+                        val lp = keyboardView.layoutParams as ConstraintLayout.LayoutParams
+                        lp.height = fullKeyboardHeight
+                        keyboardView.layoutParams = lp
+                    }
+                    // onComputeInsets 依赖最新 measure，重新计算 touchable region
+                    invalidate()
+                }
+            })
+            start()
+        }
     }
 
     private fun updateKeyboardSize() {

@@ -37,6 +37,11 @@ class TongBanDialogController(
      * 会通过 InputView 隐藏键盘，使弹窗独占 IME 区域。
      */
     var onQueryStarted: (() -> Unit)? = null
+    /**
+     * 关闭按钮点击回调：用户主动点 × 时触发，Manager 收到后
+     * 走 dismissAndRestore 路径（弹窗淡出 + 键盘展开）。
+     */
+    var onCloseClicked: (() -> Unit)? = null
 
     init {
         ui.queryButton.setOnClickListener { onQueryClick() }
@@ -211,6 +216,12 @@ class TongBanDialogController(
     }
 
     private fun onCloseClick() {
+        // 优先用 onCloseClicked 路径（Manager 收到后走平滑关闭：弹窗淡出 + 键盘展开）
+        // 没有绑定时回退到原 onClosed 路径（立即关闭）
+        if (onCloseClicked != null) {
+            onCloseClicked?.invoke()
+            return
+        }
         close()
         onClosed?.invoke()
     }

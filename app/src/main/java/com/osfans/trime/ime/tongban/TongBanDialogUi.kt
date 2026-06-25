@@ -35,6 +35,7 @@ class TongBanDialogUi(
 ) {
     private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
     private fun dpF(v: Float): Float = v * context.resources.displayMetrics.density
+    private val closeAnimHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     /** 输入行 */
     val inputEditText: TextView
@@ -385,5 +386,30 @@ class TongBanDialogUi(
 
     fun setMaxHeight(heightPx: Int) {
         // 单行结构，高度由内容决定，保留方法以兼容旧调用
+    }
+
+    /**
+     * 弹窗淡出 + 向下平移（视觉上"沉回"输入法键盘消失前的位置）。
+     * 与 InputView 端 keyboardView 高度 0 → fullKeyboardHeight 展开动画同步，
+     * 实现"插入后弹窗平滑过渡到键盘"的无感替换效果。
+     */
+    fun animateClose(durationMs: Long = 200L, onEnd: () -> Unit) {
+        // 取消任何正在跑的打字机流式输出，避免动画过程中还更新文字
+        cancelStream()
+        val r = root
+        r.animate().cancel()
+        val dy = r.height.toFloat()
+        r.animate()
+            .alpha(0f)
+            .translationY(dy)
+            .setDuration(durationMs)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .withEndAction {
+                // 重置视觉状态，供下次打开时正常显示
+                r.alpha = 1f
+                r.translationY = 0f
+                onEnd()
+            }
+            .start()
     }
 }

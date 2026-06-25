@@ -102,6 +102,10 @@ class TongBanManager(
         ctrl.onQueryStarted = {
             onQuerySubmitted?.invoke()
         }
+        // 用户点 ×：走平滑关闭（弹窗淡出 + 键盘展开）
+        ctrl.onCloseClicked = {
+            dismissAndRestore()
+        }
         // 初始时给对话框一个默认高度，避免 MATCH_PARENT 导致的循环依赖
         containerLayout.addView(
             dialog.root,
@@ -222,6 +226,21 @@ class TongBanManager(
         if (wasShowing) onDialogClosed?.invoke()
     }
 
+    /**
+     * 平滑关闭：弹窗淡出 + 键盘同步展开（无感替换输入法键盘）。
+     * 适用于 onInsert / 点击关闭按钮 等"用户主动结束对话"的场景。
+     * 与 hide() 不同，hide() 是立即关闭（用于切输入框/切后台）。
+     */
+    fun dismissAndRestore() {
+        val u = ui ?: return hide()
+        if (!isShowing) return
+        // 通知 InputView 展开键盘（高度 0 → fullKeyboardHeight 动画）
+        onDialogClosed?.invoke()
+        u.animateClose {
+            hide()
+        }
+    }
+
     /** 切换显示 */
     fun toggle(keyboardHeightPx: Int) {
         lastKeyboardHeightPx = keyboardHeightPx
@@ -292,6 +311,7 @@ class TongBanManager(
     }
 
     private fun onInsert(text: String) {
+        // 1. 立刻把响应文本写入聊天输入框
         try {
             val ic: InputConnection? = service.currentInputConnection
             if (ic != null) {
@@ -300,6 +320,7 @@ class TongBanManager(
         } catch (e: Exception) {
             Timber.w(e, "insert text failed")
         }
-        hide()
+        // 2. 弹窗淡出 + 键盘同步展开（无感替换输入法键盘）
+        dismissAndRestore()
     }
 }
