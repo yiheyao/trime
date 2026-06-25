@@ -112,7 +112,8 @@ class TongBanManager(
             context = context,
             onQuery = { /* 由 controller 内部处理 */ },
             onInsert = { text -> onInsert(text) },
-            onClose = { hide() },
+            onClose = { dismissAndRestore() },
+            onBack = { collapseToSmall() },
         )
         val ctrl = TongBanDialogController(context, dialog, tongBanService)
         ctrl.onClosed = { hide() }
@@ -378,6 +379,50 @@ class TongBanManager(
         } else {
             // 未展开（小弹窗）：直接 alpha 淡出
             u.animateClose { hide() }
+        }
+    }
+
+    /**
+     * 从状态 2 收缩回状态 1（点击 ← 返回按钮调用）。
+     * - 弹窗 height 从 fullDialogHeight 动画回 smallDialogHeight（50dp）
+     * - 响应区/工具栏/插入按钮隐藏，inputRow 恢复显示
+     * - 键盘同步展开（onDialogClosed → setKeyboardVisible(true)），与弹窗收缩同步进行
+     * - 响应文本清空（重新查询时不会显示上一次的响应）
+     */
+    fun collapseToSmall() {
+        val u = ui ?: return
+        if (!isShowing || !isExpanded) return
+        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画）
+        // 与弹窗收缩同步进行，实现"无感替换"
+        onDialogClosed?.invoke()
+        // 弹窗 height 从 fullDialogHeight 动画到 smallDialogHeight
+        val flp = u.root.layoutParams as? FrameLayout.LayoutParams ?: return
+        val startH = if (u.root.height > 0) u.root.height else fullDialogHeight
+        dialogHeightAnim?.cancel()
+        dialogHeightAnim = android.animation.ValueAnimator.ofInt(startH, smallDialogHeight).apply {
+            duration = HEIGHT_ANIM_DURATION_MS
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener {
+                val h = it.animatedValue as Int
+                flp.height = h
+                u.root.layoutParams = flp
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    // 动画结束后：清空响应内容，恢复 inputRow 可见，isExpanded 置 false
+                    controller?.cancelRequest()
+                    u.hideResponse()
+                    isExpanded = false
+                }
+            })
+            start()
+        }
+        if (BuildConfig.DEBUG) {
+            android.widget.Toast.makeText(
+                context,
+                "弹窗收缩: ${startH}px → ${smallDialogHeight}px",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 

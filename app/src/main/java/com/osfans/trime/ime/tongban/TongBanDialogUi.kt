@@ -34,6 +34,7 @@ class TongBanDialogUi(
     private val onQuery: (String) -> Unit,
     private val onInsert: (String) -> Unit,
     private val onClose: () -> Unit,
+    private val onBack: () -> Unit,
 ) {
     private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
     private fun dpF(v: Float): Float = v * context.resources.displayMetrics.density
@@ -43,17 +44,23 @@ class TongBanDialogUi(
     val inputEditText: TextView
     val inputPlaceholder: TextView
     val queryButton: Button
+    /** 状态 1 的关闭按钮（×） */
     val closeButton: TextView
+
+    /** 响应区顶部工具栏（状态 2 显示）：← 返回 + × 关闭 */
+    val responseToolbar: LinearLayout
+    val backButton: TextView
+    val closeResponseButton: TextView
 
     /** 响应框（可滚动） */
     val responseScroll: ScrollView
     val responseText: TextView
 
-    /** 插入按钮（状态 2 显示，状态 1 隐藏） */
+    /** 插入按钮（状态 2 显示在右下角） */
     val insertButton: Button
 
-    /** contentRow 容器：状态 2 显示，承载响应框 + 插入按钮 */
-    private lateinit var contentRowRef: LinearLayout
+    /** contentArea 容器：状态 2 显示，承载工具栏 + 响应区 + 插入按钮 */
+    private lateinit var contentAreaRef: LinearLayout
 
     val root: FrameLayout
 
@@ -74,7 +81,7 @@ class TongBanDialogUi(
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), dp(8), dp(10), dp(8))
         }
-        // 关闭按钮（×）
+        // 关闭按钮（×）—— 状态 1（输入行）用
         closeButton = TextView(context).apply {
             text = "×"
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 22f)
@@ -187,16 +194,21 @@ class TongBanDialogUi(
         )
 
         // 响应框：ScrollView + TextView（状态 2 时显示）
-        // 初始为 GONE：状态 1（点击"童"按钮后）不显示响应区，避免弹窗与键盘之间留空白。
         responseText = TextView(context).apply {
             text = ""
             setTextColor(Color.parseColor("#222222"))
             textSize = 14f
-            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setPadding(dp(16), dp(10), dp(16), dp(10))
             setTextIsSelectable(true) // 允许选择/复制
         }
         responseScroll = ScrollView(context).apply {
             isVerticalScrollBarEnabled = true
+            // 响应区有圆角白底，模拟"卡片"风格
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.WHITE)
+                cornerRadius = dpF(10f)
+            }
             addView(
                 responseText,
                 FrameLayout.LayoutParams(
@@ -206,29 +218,81 @@ class TongBanDialogUi(
             )
         }
 
-        // 插入按钮（状态 2 显示在响应区右侧；点击后回调 onInsert 把响应文本写入聊天框）
+        // 插入按钮（状态 2 显示在右下角，胶囊风格）
         insertButton = Button(context).apply {
-            text = "插入"
+            text = "✓ 插入"
             setTextColor(Color.WHITE)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                setColor(Color.parseColor("#4CAF50"))
+                setColor(Color.parseColor("#5B8DEF"))
+                cornerRadius = dpF(20f)
             }
-            setPadding(dp(16), dp(6), dp(16), dp(6))
+            setPadding(dp(18), dp(8), dp(18), dp(8))
+            isAllCaps = false
             setOnClickListener {
                 val text = responseText.text?.toString().orEmpty()
                 onInsert(text)
             }
         }
 
+        // 状态 2 顶部工具栏：← 返回 + 弹性空白 + × 关闭
+        backButton = TextView(context).apply {
+            text = "←"
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 22f)
+            gravity = Gravity.CENTER
+            setTextColor(Color.parseColor("#333333"))
+            setPadding(dp(8), 0, dp(8), 0)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onBack() }
+        }
+        closeResponseButton = TextView(context).apply {
+            text = "×"
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 22f)
+            gravity = Gravity.CENTER
+            setTextColor(Color.parseColor("#333333"))
+            setPadding(dp(8), 0, dp(8), 0)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClose() }
+        }
+        responseToolbar = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(8), dp(6), dp(8), dp(6))
+        }
+        responseToolbar.addView(
+            backButton,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        responseToolbar.addView(
+            View(context),
+            LinearLayout.LayoutParams(
+                0,
+                0,
+                1f, // 占满中间空白
+            ),
+        )
+        responseToolbar.addView(
+            closeResponseButton,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
         // 弹窗 root：LinearLayout(vertical)
         // - inputRow：固定高度 ~50dp（仅状态 1 显示）
-        // - contentRow（horizontal）：状态 2 显示，responseScroll + insertButton
-        //   - responseScroll：weight=1，占满 contentRow 水平剩余空间
-        //   - insertButton：固定在右侧
+        // - contentArea（vertical）：状态 2 显示
+        //   - responseToolbar：顶部工具栏（返回 + 关闭）
+        //   - responseScroll：weight=1，占满中间
+        //   - insertButtonRow：底部右下角插入按钮
         // 状态 1：弹窗 height = 50dp，仅 inputRow 可见，弹窗紧贴键盘上方无空白
         // 状态 2：弹窗 height = 键盘 height（~280dp），inputRow GONE，
-        //   contentRow 占满整个弹窗高度（响应在左 + 插入按钮在右）
+        //   contentArea 占满整个弹窗高度
         container.addView(
             inputRow,
             LinearLayout.LayoutParams(
@@ -237,34 +301,58 @@ class TongBanDialogUi(
             ),
         )
 
-        // contentRow：响应框（占满）+ 插入按钮（右侧固定宽度）
-        val contentRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // contentArea（vertical）：工具栏 + 响应卡片 + 插入按钮
+        val contentArea = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             visibility = View.GONE
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
-        contentRow.addView(
-            responseScroll,
+        // 1. 工具栏（顶部）
+        contentArea.addView(
+            responseToolbar,
             LinearLayout.LayoutParams(
-                0,
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                1f, // weight=1，水平占满剩余空间
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
-        contentRow.addView(
+        // 2. 响应卡片（占满中间）
+        contentArea.addView(
+            responseScroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f, // weight=1，垂直占满剩余空间
+            ).apply {
+                topMargin = dp(4)
+                bottomMargin = dp(4)
+            },
+        )
+        // 3. 插入按钮行（右下角）
+        val insertRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        }
+        insertRow.addView(
             insertButton,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+        contentArea.addView(
+            insertRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
-                marginEnd = dp(8)
-                marginStart = dp(4)
+                topMargin = dp(4)
+                bottomMargin = dp(4)
             },
         )
 
-        contentRowRef = contentRow
+        contentAreaRef = contentArea
         container.addView(
-            contentRow,
+            contentArea,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
@@ -352,11 +440,11 @@ class TongBanDialogUi(
     /**
      * 显示响应区（状态 1 → 状态 2）。
      * - 隐藏 inputRow（查询输入条）：查询已提交，输入条不再显示
-     * - 显示 contentRow（响应框 + 插入按钮）
+     * - 显示 contentArea（工具栏 + 响应卡片 + 插入按钮）
      * 调用方需保证弹窗 height 已经动画到与键盘一致（通常通过 [TongBanManager.expandToFull]）。
      */
     fun showResponseArea() {
-        contentRowRef.visibility = View.VISIBLE
+        contentAreaRef.visibility = View.VISIBLE
         // 状态 2：输入行（含 × / 输入框 / 查询按钮）整体隐藏
         inputRow.visibility = View.GONE
     }
@@ -364,16 +452,16 @@ class TongBanDialogUi(
     /**
      * 隐藏响应区（状态 2 → 状态 1 或彻底关闭）。
      * - 显示 inputRow（恢复输入条）
-     * - 隐藏 contentRow
+     * - 隐藏 contentArea
      */
     fun hideResponseArea() {
-        contentRowRef.visibility = View.GONE
+        contentAreaRef.visibility = View.GONE
         // 状态 1：输入行可见
         inputRow.visibility = View.VISIBLE
     }
 
     /** 当前响应区是否可见 */
-    fun isResponseAreaVisible(): Boolean = responseScroll.visibility == View.VISIBLE
+    fun isResponseAreaVisible(): Boolean = contentAreaRef.visibility == View.VISIBLE
 
     /**
      * 在响应框内显示"思考中…"占位内容，1s 内还没结果就用这个给用户预提示。
