@@ -234,7 +234,10 @@ class InputView(
             },
         )
 
-        // 童伴浮窗容器：位于 InputView 顶部（弹窗打开时扩展 IME 高度，使弹窗与键盘并存）
+        // 童伴浮窗容器：与 keyboardView 垂直堆叠在 InputView 顶部（topOfParent）。
+        // 显示时 InputView 整体高度 = 弹窗 + 键盘，IME 窗口向上扩展；
+        // 弹窗在 IME 顶部，键盘在 IME 底部，聊天窗口被遮挡范围 = 弹窗高度（新增）。
+        // 这样弹窗不会与键盘内容（候选词栏、键位）重叠。
         val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
             visibility = View.GONE
         }
@@ -242,7 +245,7 @@ class InputView(
             tongBanContainer,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                topOfParent()
             },
         )
         tongBanManager.setupContainer(tongBanContainer)

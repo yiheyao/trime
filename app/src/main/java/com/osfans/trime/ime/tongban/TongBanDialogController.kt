@@ -8,15 +8,15 @@ package com.osfans.trime.ime.tongban
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import com.osfans.trime.R
-import splitties.systemservices.clipboardManager
+import android.view.Gravity
+import android.widget.Toast
 import timber.log.Timber
 
 /**
- * 童伴问答浮窗控制器
+ * 童伴问答浮窗控制器（精简版）
  *
- * - 负责：输入清洗、查询防抖、loading 状态、网络异常展示
- * - 网络回调统一切到主线程
+ * - 输入清洗、查询防抖、loading 状态、网络异常展示
+ * - 所有 UI 反馈通过 Toast 输出（弹窗只有一行，没有 responseScroll）
  */
 class TongBanDialogController(
     private val context: Context,
@@ -29,7 +29,6 @@ class TongBanDialogController(
     private var lastNetworkType: String? = null
 
     init {
-        ui.bindInputWatcher()
         ui.queryButton.setOnClickListener { onQueryClick() }
         ui.closeButton.setOnClickListener { onCloseClick() }
         // 长按输入框可粘贴
@@ -44,7 +43,6 @@ class TongBanDialogController(
     fun open() {
         service.resetSession()
         ui.clearInput()
-        ui.clearResponses()
         querying = false
         currentRequest?.cancel()
         currentRequest = null
@@ -55,7 +53,6 @@ class TongBanDialogController(
         cancelRequest()
         service.resetSession()
         ui.clearInput()
-        ui.clearResponses()
         querying = false
     }
 
@@ -75,25 +72,30 @@ class TongBanDialogController(
     }
 
     private fun onQueryClick() {
-        if (querying) return
+        Timber.tag("TongBan").i("onQueryClick")
+        if (querying) {
+            showToastAtTop("查询中，请稍候")
+            return
+        }
         val raw = ui.getInputText()
         val cleaned = cleanInput(raw)
+        Timber.tag("TongBan").i("onQueryClick raw='%s' cleaned='%s'", raw, cleaned)
         if (cleaned.isEmpty()) {
-            ui.showError(context.getString(R.string.tongban_input_hint))
+            showToastAtTop("请输入问题")
             return
         }
         // 网络切换检测
         val nowType = currentNetworkType()
         if (lastNetworkType != null && nowType != lastNetworkType) {
             cancelRequest()
-            ui.showError(context.getString(R.string.tongban_error_network_switch))
+            showToastAtTop("网络已切换，请重试")
             lastNetworkType = nowType
             return
         }
         lastNetworkType = nowType
 
         querying = true
-        ui.showLoading()
+        showToastAtTop("查询中… cleaned='$cleaned'")
         val request = TongBanNetworkClient.newRequest()
         currentRequest = request
         service.sendMessage(cleaned, request, object : TongBanNetworkClient.TongBanCallback {
@@ -105,27 +107,40 @@ class TongBanDialogController(
         })
     }
 
+    private fun showToastAtTop(text: String) {
+        val t = Toast.makeText(context, text, Toast.LENGTH_LONG)
+        t.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 200)
+        t.show()
+    }
+
     private fun handleResult(originalText: String, result: TongBanResult) {
         querying = false
         currentRequest = null
-        ui.hideLoading()
+        Timber.tag("TongBan").i("handleResult %s", result.javaClass.simpleName)
         when (result) {
             is TongBanResult.Success -> {
                 val resp = service.parseSuccess(result.body)
+                Timber.tag("TongBan").i("Success body=%s", result.body)
                 if (resp == null || resp.response.isBlank()) {
-                    ui.showError(context.getString(R.string.tongban_error_unknown))
+                    showToastAtTop("服务器返回为空")
                 } else {
-                    ui.showResponses(listOf(resp.response))
+                    showToastAtTop(resp.response)
                 }
             }
-            is TongBanResult.Unauthorized -> ui.showError(context.getString(R.string.tongban_error_unauthorized))
-            is TongBanResult.RateLimited -> ui.showError(context.getString(R.string.tongban_error_rate_limited))
-            is TongBanResult.ServerError -> ui.showError(context.getString(R.string.tongban_error_server))
-            is TongBanResult.UnknownError -> ui.showError(context.getString(R.string.tongban_error_unknown))
-            TongBanResult.Timeout -> ui.showError(context.getString(R.string.tongban_error_timeout))
-            TongBanResult.NoNetwork -> ui.showError(context.getString(R.string.tongban_error_no_network))
+            is TongBanResult.Unauthorized ->
+                showToastAtTop("未授权 (401)")
+            is TongBanResult.RateLimited ->
+                showToastAtTop("请求过于频繁 (429)")
+            is TongBanResult.ServerError ->
+                showToastAtTop("服务器错误 (5xx)")
+            is TongBanResult.UnknownError ->
+                showToastAtTop("未知错误")
+            TongBanResult.Timeout ->
+                showToastAtTop("请求超时")
+            TongBanResult.NoNetwork ->
+                showToastAtTop("无网络")
             TongBanResult.Cancelled -> {
-                // 不展示任何错误
+                // 不展示任何提示
             }
         }
     }
@@ -148,13 +163,9 @@ class TongBanDialogController(
     private fun cleanInput(input: String): String {
         if (input.isEmpty()) return ""
         var s = input
-        // 去除首尾空白
         s = s.trim()
-        // 去除换行和回车
         s = s.replace("\n", "").replace("\r", "")
-        // 过滤特殊控制字符
         s = s.replace(Regex("[\\p{Cntrl}]"), "")
-        // 限制长度：按字符计，最多 200
         if (s.length > MAX_INPUT_CHARS) {
             s = s.substring(0, MAX_INPUT_CHARS)
         }

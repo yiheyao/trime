@@ -461,7 +461,15 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
 
     override fun onComputeInsets(outInsets: Insets) {
         if (inputDeviceManager.isVirtualKeyboard) {
-            inputView?.keyboardView?.getLocationInWindow(inputViewLocation)
+            // 童伴弹窗显示时，touchable 区域必须从弹窗顶部开始，
+            // 否则弹窗的点击事件会穿透到下层（聊天窗口）。
+            val tongBan = TongBanManager.getInstance()
+            val touchAnchor: View? = if (tongBan?.isShowing == true && tongBan.parentContainer != null) {
+                tongBan.parentContainer
+            } else {
+                inputView?.keyboardView
+            }
+            touchAnchor?.getLocationInWindow(inputViewLocation)
             outInsets.apply {
                 contentTopInsets = inputViewLocation[1]
                 visibleTopInsets = inputViewLocation[1]
@@ -600,39 +608,6 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         lastCommittedText = text
         composingText = ""
         InputFeedbackManager.textCommitSpeak(text)
-    }
-
-    /**
-     * 公开接口：动态调整 IME 窗口和 inputArea 的高度（用于童伴浮窗）
-     */
-    fun setImeHeight(totalHeightPx: Int) {
-        try {
-            // 使用 reflection 调用 Window.setAttributes / getAttributes，规避 Kotlin 属性解析问题
-            val win = window ?: return
-            val attrsClass = Class.forName("android.view.WindowManager\$LayoutParams")
-            val lpConstructor = attrsClass.getConstructor()
-            val lp = lpConstructor.newInstance() as android.view.WindowManager.LayoutParams
-            // 读取当前属性
-            val getAttrs = win.javaClass.getMethod("getAttributes")
-            val current = getAttrs.invoke(win) as android.view.WindowManager.LayoutParams
-            lp.copyFrom(current)
-            lp.height = totalHeightPx
-            lp.width = android.view.WindowManager.LayoutParams.MATCH_PARENT
-            val setAttrs = win.javaClass.getMethod("setAttributes", attrsClass)
-            setAttrs.invoke(win, lp)
-            val inputArea = contentView
-                ?.findViewById<android.widget.FrameLayout>(android.R.id.inputArea)
-            inputArea?.layoutParams = inputArea?.layoutParams?.also {
-                it.height = totalHeightPx
-            }
-        } catch (_: Throwable) { }
-    }
-
-    /**
-     * 公开接口：恢复 IME 窗口到原始键盘高度
-     */
-    fun resetImeHeight(keyboardHeightPx: Int) {
-        setImeHeight(keyboardHeightPx)
     }
 
     /**

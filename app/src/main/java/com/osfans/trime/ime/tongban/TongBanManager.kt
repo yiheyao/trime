@@ -115,28 +115,26 @@ class TongBanManager(
             android.widget.Toast.makeText(context, "ctrl is null", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        // 浮窗高度 = 键盘高度 * 2/5
-        val dialogHeight = (keyboardHeightPx * 2 / 5).coerceAtLeast(dp(110))
-        u.setMaxHeight(dialogHeight)
-        // 调整容器内浮窗 view 的高度和位置
+        // 浮窗高度（单行 UI，不需要固定高度，由内容自适应）
+        u.setMaxHeight(0)
+        // 调整容器内浮窗 view 的高度和位置：wrap_content 让 dialog 高度由内容决定
         val flp = (u.root.layoutParams as? FrameLayout.LayoutParams)
             ?: FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                dp(160),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP,
             )
-        flp.height = dialogHeight
+        flp.height = ViewGroup.LayoutParams.WRAP_CONTENT
         flp.width = FrameLayout.LayoutParams.MATCH_PARENT
         flp.gravity = Gravity.TOP
         u.root.layoutParams = flp
         ctrl.open()
         parentContainer?.visibility = View.VISIBLE
-        // 关键：扩展 IME 整体高度 = 原键盘高度 + 弹窗高度，使弹窗和键盘并存且都不被遮挡
-        extendImeHeight(keyboardHeightPx, dialogHeight)
-        // 动态设置外层容器高度 = 弹窗高度
+        // tongBanContainer 在 InputView 中由 topOfParent 约束固定在顶部，高度 wrap_content
+        // = dialog 高度。InputView 整体高度 = 弹窗 + 键盘，IME 窗口自动向上扩展。
         val parentLp = parentContainer?.layoutParams
         if (parentLp != null) {
-            parentLp.height = dialogHeight
+            parentLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
             parentContainer?.layoutParams = parentLp
         }
         c.visibility = View.VISIBLE
@@ -144,14 +142,12 @@ class TongBanManager(
         c.bringToFront()
         c.requestLayout()
         u.root.requestLayout()
-        // 关键：强制刷新 IME 输入连接，使后续键盘输入路由到弹窗的 EditText，而不是原 WeChat 的输入框
+        // 弹窗显示时，需要让 InputView 重新布局并触发 onComputeInsets 更新 touchable region
+        // （否则弹窗点击事件会穿透到下层聊天窗口）
+        service.inputView?.requestLayout()
+        // TextView 不需要焦点，所有键盘输入已通过 commitText 拦截路由到此处
         try {
-            u.inputEditText.post {
-                u.inputEditText.requestFocus()
-                val imm = context.getSystemService(android.content.Context.INPUT_METHOD_SERVICE)
-                    as? android.view.inputmethod.InputMethodManager
-                imm?.restartInput(u.inputEditText)
-            }
+            u.updateQueryButtonState()
         } catch (_: Throwable) { }
         isShowing = true
         // 调试：监听 layout 完成后再读尺寸
@@ -167,7 +163,7 @@ class TongBanManager(
                     val loc = IntArray(2).also { v.getLocationOnScreen(it) }
                     android.widget.Toast.makeText(
                         context,
-                        "show OK, dh=$dialogHeight, real=${v.width}x${v.height}, xy=(${loc[0]},${loc[1]})",
+                        "弹窗 ${v.width}x${v.height}, y=${loc[1]}",
                         android.widget.Toast.LENGTH_LONG,
                     ).show()
                     v.removeOnLayoutChangeListener(this)
@@ -184,9 +180,17 @@ class TongBanManager(
         val ctrl = controller ?: return
         ctrl.close()
         c.visibility = View.GONE
-        // 恢复 IME 高度
-        if (keyboardHeightPx > 0) restoreImeHeight(keyboardHeightPx)
+        // 恢复 tongBanContainer 高度为 wrap_content（弹窗关闭后键盘完整显示）
+        val parentLp = parentContainer?.layoutParams
+        if (parentLp != null) {
+            parentLp.height = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            parentContainer?.layoutParams = parentLp
+        }
+        // 隐藏外层容器（不影响 IME 高度）
+        parentContainer?.visibility = View.GONE
         isShowing = false
+        // 弹窗关闭后重新布局，让 onComputeInsets 把 touchable region 收回 keyboardView
+        service.inputView?.requestLayout()
     }
 
     /** 切换显示 */
@@ -195,28 +199,30 @@ class TongBanManager(
         if (isShowing) hide(keyboardHeightPx) else show(keyboardHeightPx)
     }
 
-    /** 是否弹窗正在显示且输入框已聚焦（用于 commitText 路由判断） */
+    /**
+     * 是否弹窗正在显示（用于 commitText 路由判断）。
+     * 注意：弹窗内部使用 TextView 而非 EditText，不持有焦点；
+     * 弹窗打开期间，所有键盘输入都应路由到弹窗，所以只看 isShowing 即可。
+     */
     fun isShowingAndFocusedInternal(): Boolean {
-        if (!isShowing) return false
-        val et = ui?.inputEditText ?: return false
-        return et.hasFocus() || et.requestFocus()
+        return isShowing && ui != null
     }
 
-    /** 由 service.commitText 调用：将文字追加到弹窗 EditText（不走系统 InputConnection） */
+    /** 由 service.commitText 调用：将文字追加到弹窗 TextView（不走系统 InputConnection） */
     fun appendInputTextInternal(text: String) {
         if (!isShowing) return
-        val et = ui?.inputEditText ?: return
+        val tv = ui?.inputEditText ?: return
         // 在 UI 线程执行 append
-        et.post {
-            val cur = et.text?.toString().orEmpty()
+        tv.post {
+            val cur = tv.text?.toString().orEmpty()
             val cleaned = cleanInput(text)
             if (cleaned.isEmpty()) return@post
             // 限制 200 个汉字长度
             val merged = (cur + cleaned)
             val maxLen = 200
             val truncated = if (merged.length > maxLen) merged.substring(0, maxLen) else merged
-            et.setText(truncated)
-            et.setSelection(truncated.length)
+            tv.text = truncated
+            ui?.updateQueryButtonState()
         }
     }
 
@@ -227,17 +233,7 @@ class TongBanManager(
             .trim()
     }
 
-    /** 扩展 IME 整体高度 = 键盘高度 + 弹窗高度 */
-    private fun extendImeHeight(keyboardHeightPx: Int, popupHeightPx: Int) {
-        val totalHeight = keyboardHeightPx + popupHeightPx
-        service.setImeHeight(totalHeight)
-        android.widget.Toast.makeText(context, "ime height=$totalHeight", android.widget.Toast.LENGTH_SHORT).show()
-    }
-
-    /** 恢复 IME 高度到弹窗未打开时的尺寸 */
-    private fun restoreImeHeight(keyboardHeightPx: Int) {
-        service.resetImeHeight(keyboardHeightPx)
-    }
+    
 
     /** 强制取消进行中的请求（不关闭浮窗） */
     fun cancelInflight() {
