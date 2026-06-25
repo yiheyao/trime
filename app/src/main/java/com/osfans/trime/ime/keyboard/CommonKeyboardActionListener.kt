@@ -371,6 +371,11 @@ class CommonKeyboardActionListener {
                 metaState: Int,
             ) {
                 shouldReleaseKey = false
+                // 童伴浮窗打开时，退格键删除弹窗输入框文字
+                if (keyEventCode == KeyEvent.KEYCODE_DEL && com.osfans.trime.ime.tongban.TongBanManager.isShowingAndFocused()) {
+                    com.osfans.trime.ime.tongban.TongBanManager.deleteLastChar()
+                    return
+                }
                 val value =
                     RimeKeyMapping
                         .keyCodeToVal(keyEventCode)

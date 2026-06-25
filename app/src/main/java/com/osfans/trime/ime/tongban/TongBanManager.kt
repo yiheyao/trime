@@ -41,6 +41,12 @@ class TongBanManager(
         fun appendInputText(text: String) {
             INSTANCE?.appendInputTextInternal(text)
         }
+
+        /** 由 onKey 调用：删除弹窗输入框最后一个字符 */
+        @JvmStatic
+        fun deleteLastChar() {
+            INSTANCE?.deleteLastCharInternal()
+        }
     }
 
     init {
@@ -224,6 +230,18 @@ class TongBanManager(
             val maxLen = 200
             val truncated = if (merged.length > maxLen) merged.substring(0, maxLen) else merged
             tv.text = truncated
+            ui?.updateQueryButtonState()
+        }
+    }
+
+    /** 删除弹窗输入框最后一个字符（退格键） */
+    fun deleteLastCharInternal() {
+        if (!isShowing) return
+        val tv = ui?.inputEditText ?: return
+        tv.post {
+            val cur = tv.text?.toString().orEmpty()
+            if (cur.isEmpty()) return@post
+            tv.text = cur.dropLast(1)
             ui?.updateQueryButtonState()
         }
     }

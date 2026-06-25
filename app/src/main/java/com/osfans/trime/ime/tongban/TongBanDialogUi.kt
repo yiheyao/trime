@@ -44,6 +44,7 @@ class TongBanDialogUi(
     /** 响应框（可滚动） */
     val responseScroll: ScrollView
     val responseText: TextView
+    private val insertButton: Button
 
     val root: FrameLayout
 
@@ -173,6 +174,25 @@ class TongBanDialogUi(
             visibility = View.GONE
         }
 
+        // 插入按钮：点击后将回复内容插入到聊天输入框
+        insertButton = Button(context).apply {
+            text = "插入"
+            setTextColor(Color.WHITE)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                setColor(Color.parseColor("#4CAF50"))
+                cornerRadius = dpF(4f)
+            }
+            setPadding(dp(16), dp(6), dp(16), dp(6))
+            visibility = View.GONE
+            setOnClickListener {
+                val resp = responseText.text?.toString().orEmpty()
+                if (resp.isNotEmpty()) {
+                    onInsert(resp)
+                }
+            }
+        }
+
         container.addView(
             inputRow,
             LinearLayout.LayoutParams(
@@ -189,6 +209,18 @@ class TongBanDialogUi(
                 // 默认权重 0（隐藏时不占空间），但可以动态改为有值
                 height = dp(180)
                 topMargin = dp(4)
+            },
+        )
+        container.addView(
+            insertButton,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                gravity = Gravity.END
+                topMargin = dp(4)
+                bottomMargin = dp(8)
+                marginEnd = dp(12)
             },
         )
 
@@ -215,6 +247,7 @@ class TongBanDialogUi(
     fun showResponse(text: String) {
         responseText.text = text
         responseScroll.visibility = View.VISIBLE
+        insertButton.visibility = View.VISIBLE
         // 自动滚到底部
         responseScroll.post {
             responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
@@ -224,6 +257,7 @@ class TongBanDialogUi(
     /** 隐藏响应框 */
     fun hideResponse() {
         responseScroll.visibility = View.GONE
+        insertButton.visibility = View.GONE
         responseText.text = ""
     }
 
