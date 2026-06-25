@@ -52,6 +52,8 @@ class TongBanManager(
     private var ui: TongBanDialogUi? = null
     private var controller: TongBanDialogController? = null
     private var parentContainer: FrameLayout? = null
+    /** 暴露给 TrimeInputMethodService.onComputeInsets 用于读取 IME 顶部位置 */
+    internal val parentContainerPublic: FrameLayout? get() = parentContainer
     private var container: FrameLayout? = null
 
     private fun dp(v: Int): Int = (v * context.resources.displayMetrics.density).toInt()
@@ -144,7 +146,7 @@ class TongBanManager(
         u.root.requestLayout()
         // 弹窗显示时，需要让 InputView 重新布局并触发 onComputeInsets 更新 touchable region
         // （否则弹窗点击事件会穿透到下层聊天窗口）
-        service.inputView?.requestLayout()
+        service.inputViewPublic?.requestLayout()
         // TextView 不需要焦点，所有键盘输入已通过 commitText 拦截路由到此处
         try {
             u.updateQueryButtonState()
@@ -190,7 +192,7 @@ class TongBanManager(
         parentContainer?.visibility = View.GONE
         isShowing = false
         // 弹窗关闭后重新布局，让 onComputeInsets 把 touchable region 收回 keyboardView
-        service.inputView?.requestLayout()
+        service.inputViewPublic?.requestLayout()
     }
 
     /** 切换显示 */

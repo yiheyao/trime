@@ -43,6 +43,7 @@ class TongBanDialogController(
     fun open() {
         service.resetSession()
         ui.clearInput()
+        ui.hideResponse()
         querying = false
         currentRequest?.cancel()
         currentRequest = null
@@ -53,6 +54,7 @@ class TongBanDialogController(
         cancelRequest()
         service.resetSession()
         ui.clearInput()
+        ui.hideResponse()
         querying = false
     }
 
@@ -124,21 +126,35 @@ class TongBanDialogController(
                 if (resp == null || resp.response.isBlank()) {
                     showToastAtTop("服务器返回为空")
                 } else {
-                    showToastAtTop(resp.response)
+                    // 成功响应写入弹窗内的响应框，可滚动可选择/复制
+                    ui.showResponse(resp.response)
+                    showToastAtTop("响应: ${resp.response.take(50)}")
                 }
             }
-            is TongBanResult.Unauthorized ->
+            is TongBanResult.Unauthorized -> {
+                ui.showResponse("⚠ 未授权 (401)\n请检查登录状态")
                 showToastAtTop("未授权 (401)")
-            is TongBanResult.RateLimited ->
+            }
+            is TongBanResult.RateLimited -> {
+                ui.showResponse("⚠ 请求过于频繁 (429)\n请稍后再试")
                 showToastAtTop("请求过于频繁 (429)")
-            is TongBanResult.ServerError ->
+            }
+            is TongBanResult.ServerError -> {
+                ui.showResponse("⚠ 服务器错误 (5xx)\n${result.body.take(200)}")
                 showToastAtTop("服务器错误 (5xx)")
-            is TongBanResult.UnknownError ->
+            }
+            is TongBanResult.UnknownError -> {
+                ui.showResponse("⚠ 未知错误\n${result.body.take(200)}")
                 showToastAtTop("未知错误")
-            TongBanResult.Timeout ->
+            }
+            TongBanResult.Timeout -> {
+                ui.showResponse("⏱ 请求超时\n网络不稳定或服务繁忙，请重试")
                 showToastAtTop("请求超时")
-            TongBanResult.NoNetwork ->
+            }
+            TongBanResult.NoNetwork -> {
+                ui.showResponse("📡 无网络\n请检查网络连接后重试")
                 showToastAtTop("无网络")
+            }
             TongBanResult.Cancelled -> {
                 // 不展示任何提示
             }

@@ -13,6 +13,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name="com.osfans.trime.TrimeApplication"
@@ -21,7 +23,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
         android:label="@string/trime_app_name"
         android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_app_icon_round"
-        android:theme="@style/Theme.TrimeAppTheme">
+        android:theme="@style/Theme.TrimeAppTheme"
+        android:usesCleartextTraffic="true">
 
         <service
             android:name=".ime.core.TrimeInputMethodService"

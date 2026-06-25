@@ -16,14 +16,15 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 
 /**
- * 童伴智能问题浮窗 UI（精简版）
+ * 童伴智能问题浮窗 UI
  *
- * - 单行结构：输入框 + 查询按钮
- * - 高度小（≈ 56dp），不遮挡键盘主体
- * - 查询反馈（loading/error/响应）由 Controller 通过 Toast 输出
+ * - 顶部：单行输入（× 输入框 查询）
+ * - 下方：可滚动响应框（TextView inside ScrollView），长按复制
+ * - 总高度受 IME 限制，响应框最多 200dp，剩余空间给键盘
  */
 class TongBanDialogUi(
     private val context: Context,
@@ -40,10 +41,15 @@ class TongBanDialogUi(
     val queryButton: Button
     val closeButton: TextView
 
+    /** 响应框（可滚动） */
+    val responseScroll: ScrollView
+    val responseText: TextView
+
     val root: FrameLayout
 
     init {
-        val container = FrameLayout(context).apply {
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 setColor(Color.parseColor("#FAFAFA"))
@@ -145,15 +151,56 @@ class TongBanDialogUi(
             ),
         )
 
+        // 响应框：ScrollView + TextView
+        responseText = TextView(context).apply {
+            text = ""
+            setTextColor(Color.parseColor("#222222"))
+            textSize = 14f
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            setTextIsSelectable(true) // 允许选择/复制
+            // 不需要 focusable，避免触发 IME
+        }
+        responseScroll = ScrollView(context).apply {
+            isVerticalScrollBarEnabled = true
+            addView(
+                responseText,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            // 响应框默认隐藏，输入后才显示
+            visibility = View.GONE
+        }
+
         container.addView(
             inputRow,
-            FrameLayout.LayoutParams(
+            LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ),
         )
+        container.addView(
+            responseScroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+            ).apply {
+                // 默认权重 0（隐藏时不占空间），但可以动态改为有值
+                height = dp(180)
+                topMargin = dp(4)
+            },
+        )
 
-        root = container
+        root = FrameLayout(context).apply {
+            addView(
+                container,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
     }
 
     /** 同步查询按钮启用状态（供 appendInputText / setInputText 调用） */
@@ -162,6 +209,22 @@ class TongBanDialogUi(
         queryButton.isEnabled = hasText
         queryButton.alpha = if (hasText) 1f else 0.4f
         inputPlaceholder.visibility = if (hasText) View.GONE else View.VISIBLE
+    }
+
+    /** 显示响应内容 */
+    fun showResponse(text: String) {
+        responseText.text = text
+        responseScroll.visibility = View.VISIBLE
+        // 自动滚到底部
+        responseScroll.post {
+            responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
+        }
+    }
+
+    /** 隐藏响应框 */
+    fun hideResponse() {
+        responseScroll.visibility = View.GONE
+        responseText.text = ""
     }
 
     fun pasteFromClipboard() {

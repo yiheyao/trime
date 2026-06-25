@@ -21,12 +21,12 @@ import java.util.concurrent.atomic.AtomicBoolean
  * 特性：
  *  - 独立线程池
  *  - 支持请求取消（cancel）
- *  - 800ms 连接/读取超时
+ *  - 5s 连接超时 / 30s 读取超时（AI 服务需要思考时间）
  *  - 异常分类（401/429/500/超时/无网络）
  */
 object TongBanNetworkClient {
-    private const val CONNECT_TIMEOUT_MS = 800
-    private const val READ_TIMEOUT_MS = 800
+    private const val CONNECT_TIMEOUT_MS = 5000
+    private const val READ_TIMEOUT_MS = 30000
     private val executor = Executors.newCachedThreadPool { r ->
         Thread(r, "TongBan-Network").apply { isDaemon = true }
     }

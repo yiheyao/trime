@@ -79,6 +79,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     private lateinit var contentView: FrameLayout
     private lateinit var lastKnownConfig: Configuration
     private var inputView: InputView? = null
+    /** 暴露给 TongBanManager 用于触发 InputView requestLayout，让 onComputeInsets 重新计算 touchable region */
+    internal val inputViewPublic: InputView? get() = inputView
     private var candidatesView: CandidatesView? = null
     private val navBarManager = NavigationBarManager()
     private val inputDeviceManager =
@@ -464,8 +466,8 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             // 童伴弹窗显示时，touchable 区域必须从弹窗顶部开始，
             // 否则弹窗的点击事件会穿透到下层（聊天窗口）。
             val tongBan = TongBanManager.getInstance()
-            val touchAnchor: View? = if (tongBan?.isShowing == true && tongBan.parentContainer != null) {
-                tongBan.parentContainer
+            val touchAnchor: View? = if (tongBan?.isShowing == true && tongBan.parentContainerPublic != null) {
+                tongBan.parentContainerPublic
             } else {
                 inputView?.keyboardView
             }
