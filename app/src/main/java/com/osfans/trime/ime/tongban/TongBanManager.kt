@@ -69,6 +69,9 @@ class TongBanManager(
     var isShowing: Boolean = false
     private var lastKeyboardHeightPx: Int = 0
         private set
+    /** 弹窗展开后"完整"高度（包含响应 + 插入按钮），用于动画目标值 */
+    private var fullDialogHeight: Int = 0
+    private var dialogHeightAnim: android.animation.ValueAnimator? = null
 
     /**
      * 查询提交回调：点击"查询"按钮后由 controller 触发，InputView 收到后隐藏键盘。
@@ -100,6 +103,9 @@ class TongBanManager(
         ctrl.onClosed = { hide() }
         // 桥接 controller → manager：点击查询后通知 InputView 隐藏键盘
         ctrl.onQueryStarted = {
+            // 通知 InputView 收起键盘（height H → 0 动画）
+            // 弹窗 size 由 wrap_content 决定（响应区 + 插入按钮始终 VISIBLE，placeholder 文字），
+            // 点查询瞬间弹窗 size 已经是 300dp 稳定状态，不会再有"分阶段扩展"视觉变化。
             onQuerySubmitted?.invoke()
         }
         // 用户点 ×：走平滑关闭（弹窗淡出 + 键盘展开）
@@ -200,6 +206,32 @@ class TongBanManager(
                 }
             }
         })
+        // 弹窗 layoutParams.height = WRAP_CONTENT（弹窗 size 由内容决定）。
+        // 响应区 + 插入按钮 始终 VISIBLE（响应未到时显示 placeholder 灰色文字），
+        // 所以 wrap_content 本身就是"完整高度"，show 时刻弹窗 size 已经是 300dp 稳定状态，
+        // 不会因响应到达而发生 height 跳变。
+    }
+
+    /** 弹窗 height 同步动画：用于 dismissAndRestore 关闭流程，
+     * 弹窗 height 从 fullDialogHeight 收缩到 0，与 InputView 端 keyboardView
+     * height 0 → fullKeyboardHeight 展开动画同步。
+     */
+    fun animateDialogHeightToZero(durationMs: Long = 220L) {
+        val root = ui?.root ?: return
+        val flp = root.layoutParams as? FrameLayout.LayoutParams ?: return
+        val startH = root.height
+        if (startH <= 0) return
+        dialogHeightAnim?.cancel()
+        dialogHeightAnim = android.animation.ValueAnimator.ofInt(startH, 0).apply {
+            duration = durationMs
+            interpolator = android.view.animation.DecelerateInterpolator()
+            addUpdateListener {
+                val h = (it.animatedValue as Int).coerceAtLeast(0)
+                flp.height = h
+                root.layoutParams = flp
+            }
+            start()
+        }
     }
 
     /**
@@ -220,6 +252,18 @@ class TongBanManager(
         parentContainer?.visibility = View.GONE
         val wasShowing = isShowing
         isShowing = false
+        // 清理弹窗 alpha + height（避免动画中间态残留）
+        dialogHeightAnim?.cancel()
+        dialogHeightAnim = null
+        val root = ui?.root
+        if (root != null) {
+            val flp = root.layoutParams as? FrameLayout.LayoutParams
+            if (flp != null) {
+                flp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                root.layoutParams = flp
+            }
+            root.alpha = 1f
+        }
         // 弹窗关闭后重新布局，让 onComputeInsets 把 touchable region 收回 keyboardView
         service.inputViewPublic?.requestLayout()
         // 通知 InputView 恢复键盘
@@ -227,18 +271,46 @@ class TongBanManager(
     }
 
     /**
-     * 平滑关闭：弹窗淡出 + 键盘同步展开（无感替换输入法键盘）。
-     * 适用于 onInsert / 点击关闭按钮 等"用户主动结束对话"的场景。
-     * 与 hide() 不同，hide() 是立即关闭（用于切输入框/切后台）。
+     * 平滑关闭：弹窗 alpha 淡出 + 键盘同步展开（无感替换输入法键盘）。
+     * 弹窗 size = WRAP_CONTENT 稳定在 300dp（响应区/插入按钮始终 VISIBLE + placeholder），
+     * 所以关闭时只做 alpha 淡出，height 不变（关闭后 GONE 不占空间）。
      */
     fun dismissAndRestore() {
         val u = ui ?: return hide()
         if (!isShowing) return
-        // 通知 InputView 展开键盘（高度 0 → fullKeyboardHeight 动画）
+        // 通知 InputView 展开键盘（height 0 → fullKeyboardHeight 动画）
         onDialogClosed?.invoke()
+        // 弹窗 alpha 淡出（与键盘展开同步）
         u.animateClose {
             hide()
         }
+    }
+
+    /**
+     * IME 关闭时强制重置弹窗状态（不触发 onDialogClosed 回调，避免 keyboardView 干扰）。
+     * 解决场景：系统返回键关闭 IME 时，弹窗 view 仍残留 visibility=VISIBLE，
+     * manager.isShowing 仍 = true，下次点"童"按钮时 toggle 走 hide 分支，弹窗 反而消失。
+     */
+    fun forceReset() {
+        val c = container ?: return
+        controller?.cancelRequest()
+        c.visibility = View.GONE
+        parentContainer?.visibility = View.GONE
+        ui?.root?.visibility = View.GONE
+        dialogHeightAnim?.cancel()
+        dialogHeightAnim = null
+        // 弹窗 height 还原 wrap_content（让下次 show 时不受影响）
+        val root = ui?.root
+        if (root != null) {
+            val flp = root.layoutParams as? FrameLayout.LayoutParams
+            if (flp != null) {
+                flp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                root.layoutParams = flp
+            }
+            root.alpha = 1f
+        }
+        isShowing = false
+        // 不调 onDialogClosed（避免 setKeyboardVisible 干扰）
     }
 
     /** 切换显示 */

@@ -202,7 +202,7 @@ class TongBanDialogUi(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ),
             )
-            // 响应框默认隐藏，输入后才显示
+            // 初始 GONE（不占空间，弹窗 size 跟随内容变化）
             visibility = View.GONE
         }
 
@@ -216,6 +216,7 @@ class TongBanDialogUi(
                 cornerRadius = dpF(4f)
             }
             setPadding(dp(16), dp(6), dp(16), dp(6))
+            // 初始 GONE（不占空间，弹窗 size 跟随内容变化）
             visibility = View.GONE
             setOnClickListener {
                 val resp = responseText.text?.toString().orEmpty()
@@ -280,8 +281,11 @@ class TongBanDialogUi(
     fun showResponse(text: String) {
         cancelStream()
         responseText.text = text
+        responseText.setTextColor(Color.BLACK)
         responseScroll.visibility = View.VISIBLE
         insertButton.visibility = View.VISIBLE
+        insertButton.isEnabled = true
+        insertButton.alpha = 1f
         // 自动滚到底部
         responseScroll.post {
             responseScroll.fullScroll(ScrollView.FOCUS_DOWN)
@@ -307,6 +311,8 @@ class TongBanDialogUi(
         responseText.text = ""
         responseScroll.visibility = View.VISIBLE
         insertButton.visibility = View.VISIBLE
+        insertButton.isEnabled = true
+        insertButton.alpha = 1f
         streamHandler?.removeCallbacksAndMessages(null)
         val h = android.os.Handler(android.os.Looper.getMainLooper())
         streamHandler = h
@@ -338,22 +344,51 @@ class TongBanDialogUi(
     }
 
     /**
+     * 设置响应区为"请输入问题后点击查询"placeholder 状态（灰色提示文字）。
+     * 弹窗 size 稳定在 fullDialogHeight（包含响应 + 插入按钮），但响应区
+     * 始终 VISIBLE 显示内容（避免出现"中间空白卡片"）。
+     */
+    fun setPlaceholder() {
+        cancelStream()
+        responseText.text = PLACEHOLDER_HINT
+        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
+        responseScroll.visibility = View.VISIBLE
+        insertButton.visibility = View.VISIBLE
+        insertButton.isEnabled = false
+        insertButton.alpha = 0.45f
+    }
+
+    /** 内部占位文字 + 灰色 */
+    private val PLACEHOLDER_HINT = "请在上方输入问题，然后点击查询"
+    private val PLACEHOLDER_TEXT_COLOR = Color.parseColor("#9E9E9E")
+
+    /**
      * 在响应框内显示"思考中…"占位内容，1s 内还没结果就用这个给用户预提示。
      * 真正的响应到达后会被 [showResponse] / [showResponseStream] 覆盖。
      */
     fun showPendingHint(hint: String) {
         cancelStream()
         responseText.text = hint
+        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
         responseScroll.visibility = View.VISIBLE
-        insertButton.visibility = View.GONE
+        // 插入按钮保持 disabled（响应未到不能点插入）
+        insertButton.visibility = View.VISIBLE
+        insertButton.isEnabled = false
+        insertButton.alpha = 0.45f
     }
 
-    /** 隐藏响应框 */
+    /**
+     * 回到 placeholder 状态（用户点 × 关闭弹窗、点插入提交后、查询出错时调用）。
+     * 弹窗 size 保持稳定，仅切换响应文字 + 按钮 enabled。
+     */
     fun hideResponse() {
         cancelStream()
-        responseScroll.visibility = View.GONE
-        insertButton.visibility = View.GONE
-        responseText.text = ""
+        responseText.text = PLACEHOLDER_HINT
+        responseText.setTextColor(PLACEHOLDER_TEXT_COLOR)
+        responseScroll.visibility = View.VISIBLE
+        insertButton.visibility = View.VISIBLE
+        insertButton.isEnabled = false
+        insertButton.alpha = 0.45f
     }
 
     fun pasteFromClipboard() {
@@ -389,25 +424,25 @@ class TongBanDialogUi(
     }
 
     /**
-     * 弹窗淡出 + 向下平移（视觉上"沉回"输入法键盘消失前的位置）。
-     * 与 InputView 端 keyboardView 高度 0 → fullKeyboardHeight 展开动画同步，
-     * 实现"插入后弹窗平滑过渡到键盘"的无感替换效果。
+     * 弹窗关闭动画：只做 alpha 淡出（height 收缩由 TongBanManager.animateDialogHeight
+     * 与 InputView 端 keyboardView 高度动画同步进行）。
+     *
+     * 流程：TongBanManager.dismissAndRestore
+     *   1) animateDialogHeight(fullH → 0)  弹窗高度收缩（与键盘展开同步反向）
+     *   2) onDialogClosed → InputView.setKeyboardVisible(true)  键盘 height 0 → fullKeyboardHeight
+     *   3) animateClose { hide() }  弹窗 alpha 1 → 0，完成后 hide() 设 GONE
      */
-    fun animateClose(durationMs: Long = 200L, onEnd: () -> Unit) {
-        // 取消任何正在跑的打字机流式输出，避免动画过程中还更新文字
+    fun animateClose(durationMs: Long = 220L, onEnd: () -> Unit) {
+        // 取消任何正在跑的打字机流式输出
         cancelStream()
         val r = root
         r.animate().cancel()
-        val dy = r.height.toFloat()
         r.animate()
             .alpha(0f)
-            .translationY(dy)
             .setDuration(durationMs)
             .setInterpolator(android.view.animation.DecelerateInterpolator())
             .withEndAction {
-                // 重置视觉状态，供下次打开时正常显示
                 r.alpha = 1f
-                r.translationY = 0f
                 onEnd()
             }
             .start()

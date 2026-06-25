@@ -587,8 +587,13 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
             clearComposition()
         }
         InputFeedbackManager.finishInput()
-        // 童伴浮窗：收起键盘/页面销毁时关闭
-        inputView?.finishInput()
+        // 童伴浮窗：IME 完全关闭时（finishingInput=true）强制重置弹窗状态
+        // —— 避免 manager.isShowing 残留 = true，下次点"童"按钮时 toggle 走 hide 分支。
+        // 不再调 inputView.finishInput()（其中的 hide() 会触发 onDialogClosed → setKeyboardVisible
+        // 在 IME 不可见时启动 keyboardView 高度动画，无意义）。forceReset 不触发 setKeyboardVisible。
+        if (finishingInput) {
+            TongBanManager.getInstance()?.forceReset()
+        }
     }
 
     fun commitText(text: String) {
