@@ -476,6 +476,11 @@ keystore.properties
 app/src/main/assets/checksums.json
 app/src/main/assets/shared/opencc
 
+# 外部词库（从 D:\project\andriod\ciku 复制，不上传到 GitHub）
+app/src/main/assets/shared/THUOCL_*.dict.yaml
+app/src/main/assets/shared/clover.*
+app/src/main/assets/shared/sogou_new_words.dict.yaml
+
 # boost
 # 注意：boost 源码包从 app/ 迁到 app/src/main/jni/，要匹配两个位置
 app/boost-*.tar.xz
