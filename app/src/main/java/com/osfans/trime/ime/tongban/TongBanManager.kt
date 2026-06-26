@@ -494,11 +494,17 @@ class TongBanManager(
         }
     }
 
+    /** 退格键删除防重入标志：防止 key DOWN + key UP 两次触发导致一次删除两个字符 */
+    private var deletePending = false
+
     /** 删除弹窗输入框最后一个字符（退格键） */
     fun deleteLastCharInternal() {
         if (!isShowing) return
-        val tv = ui?.inputEditText ?: return
+        if (deletePending) return
+        deletePending = true
+        val tv = ui?.inputEditText ?: run { deletePending = false; return }
         tv.post {
+            deletePending = false
             val cur = tv.text?.toString().orEmpty()
             if (cur.isEmpty()) return@post
             tv.text = cur.dropLast(1)
