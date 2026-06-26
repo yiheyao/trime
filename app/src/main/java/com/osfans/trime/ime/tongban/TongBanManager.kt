@@ -87,6 +87,8 @@ class TongBanManager(
     private var dialogHeightAnim: android.animation.ValueAnimator? = null
     /** 标记当前是否处于展开状态（响应区可见 + 弹窗占满键盘区域） */
     private var isExpanded: Boolean = false
+    /** 暴露给 InputView 用于诊断日志 */
+    internal val isExpandedForDebug: Boolean get() = isExpanded
 
     /**
      * 查询提交回调：点击"查询"按钮后由 controller 触发，InputView 收到后隐藏键盘。
@@ -319,8 +321,15 @@ class TongBanManager(
      * 隐藏浮窗
      */
     fun hide(keyboardHeightPx: Int = lastKeyboardHeightPx) {
-        val c = container ?: return
-        val ctrl = controller ?: return
+        Timber.i("[WXKB-DEBUG] hide() entry isShowing=$isShowing isExpanded=$isExpanded")
+        val c = container ?: run {
+            Timber.w("[WXKB-DEBUG] hide() container is null, returning early")
+            return
+        }
+        val ctrl = controller ?: run {
+            Timber.w("[WXKB-DEBUG] hide() controller is null, returning early")
+            return
+        }
         ctrl.close()
         c.visibility = View.GONE
         // 恢复 tongBanContainer 高度为 wrap_content（弹窗关闭后键盘完整显示）
@@ -350,7 +359,12 @@ class TongBanManager(
         // 弹窗关闭后重新布局，让 onComputeInsets 把 touchable region 收回 keyboardView
         service.inputViewPublic?.requestLayout()
         // 通知 InputView 恢复键盘
-        if (wasShowing) onDialogClosed?.invoke()
+        if (wasShowing) {
+            Timber.i("[WXKB-DEBUG] hide() calling onDialogClosed to restore keyboard")
+            onDialogClosed?.invoke()
+        } else {
+            Timber.i("[WXKB-DEBUG] hide() wasShowing=false, skip onDialogClosed")
+        }
     }
 
     /**

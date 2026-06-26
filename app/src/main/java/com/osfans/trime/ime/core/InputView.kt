@@ -312,19 +312,26 @@ class InputView(
         Timber.i("[WXKB-DEBUG] A:setKeyboardVisible entry visible=$visible fullKH=$fullKeyboardHeight curH=${keyboardView.height} vis=${keyboardView.visibility} tongBan.isShowing=${tongBanManager.isShowing}")
         // #endregion
         // 首次进入：若还没记录 fullKeyboardHeight，则用当前 keyboardView 高度作为基准
+        // 关键：只在 keyboardView 实际有高度时才记录，避免在键盘已收起（height=0）时把 fullKeyboardHeight 污染为 0
         if (fullKeyboardHeight <= 0 && keyboardView.height > 0) {
             fullKeyboardHeight = keyboardView.height
         }
         if (fullKeyboardHeight <= 0) {
-            // 还没 layout 过，直接走 GONE/VISIBLE 兜底
-            keyboardView.visibility = if (visible) View.VISIBLE else View.GONE
-            preedit.ui.root.visibility = if (visible) View.VISIBLE else View.GONE
-            requestLayout()
-            invalidate()
-            // #region debug-point A:setKeyboardVisible-early-return
-            Timber.i("[WXKB-DEBUG] A:setKeyboardVisible early-return(no fullKH) vis=${keyboardView.visibility}")
-            // #endregion
-            return
+            // 还没 layout 过，或 keyboardView 当前高度为 0（键盘已被收起）
+            // 用默认值 280dp 作为 fallback，确保键盘能恢复
+            if (visible) {
+                fullKeyboardHeight = dp(280)
+                Timber.i("[WXKB-DEBUG] A:setKeyboardVisible fullKH was 0, using default 280dp=$fullKeyboardHeight")
+            } else {
+                keyboardView.visibility = View.GONE
+                preedit.ui.root.visibility = View.GONE
+                requestLayout()
+                invalidate()
+                // #region debug-point A:setKeyboardVisible-early-return
+                Timber.i("[WXKB-DEBUG] A:setKeyboardVisible early-return(no fullKH, hide) vis=${keyboardView.visibility}")
+                // #endregion
+                return
+            }
         }
         val targetH = if (visible) fullKeyboardHeight else 0
         val startH = keyboardView.height
@@ -396,6 +403,7 @@ class InputView(
                     }
                     // onComputeInsets 依赖最新 measure，重新计算 touchable region
                     invalidate()
+                    Timber.i("[WXKB-DEBUG] A:setKeyboardVisible animEnd visible=$visible kbVis=${keyboardView.visibility} kbH=${keyboardView.height}")
                 }
             })
             start()
@@ -448,12 +456,20 @@ class InputView(
         info: EditorInfo,
         restarting: Boolean = false,
     ) {
+        Timber.i("[WXKB-DEBUG] startInput entry restarting=$restarting tongBan.isShowing=${tongBanManager.isShowing} tongBan.isExpanded=${tongBanManager.isExpandedForDebug} kbVis=${keyboardView.visibility} kbH=${keyboardView.height}")
         updateEnterKeyLabel(info)
         broadcaster.onStartInput(info)
         if (!restarting) {
             // 切聊天/重新开始输入：销毁童伴 session
-            tongBanManager.hide()
             windowManager.attachWindow(KeyboardWindow)
+        }
+        // 无论是否 restarting，只要童伴弹窗还在显示（如查询超时/无网络后用户重新点击输入框），
+        // 都需要隐藏弹窗并恢复键盘，否则键盘无法打开
+        if (tongBanManager.isShowing) {
+            Timber.i("[WXKB-DEBUG] startInput: tongBan still showing, calling hide() to restore keyboard")
+            tongBanManager.hide()
+        } else {
+            Timber.i("[WXKB-DEBUG] startInput: tongBan not showing, keyboard should be visible")
         }
     }
 
