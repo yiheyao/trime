@@ -1,7 +1,7 @@
 [versions]
 androidGradlePlugin = "8.13.1"
 kotlin = "2.2.21"
-ksp = "2.3.2"
+ksp = "2.2.21-2.0.4"
 navigation = "2.9.6"
 room = "2.7.2"
 splitties = "3.0.0"

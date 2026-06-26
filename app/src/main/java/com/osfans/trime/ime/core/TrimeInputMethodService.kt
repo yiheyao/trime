@@ -640,12 +640,19 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         restarting: Boolean,
     ) {
         Timber.d("onStartInputView: restarting=$restarting")
+        // #region debug-point E:onStartInputView
+        val kbv = inputView?.keyboardView
+        Timber.i("[WXKB-DEBUG] E:onStartInputView restarting=$restarting tongBan.isShowing=${TongBanManager.getInstance()?.isShowing} inputView=${inputView != null} kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
         InputFeedbackManager.startInput()
         postRimeJob {
             updateRimeOption(this)
         }
         val (useVirtualKeyboard, useCandidatesView) =
             inputDeviceManager.evaluateOnStartInputView(attribute, this)
+        // #region debug-point E:onStartInputView-eval
+        Timber.i("[WXKB-DEBUG] E:onStartInputView eval useVK=$useVirtualKeyboard useCV=$useCandidatesView isVirtualKB=${inputDeviceManager.isVirtualKeyboard}")
+        // #endregion
         if (useVirtualKeyboard) {
             inputView?.startInput(attribute, restarting)
         }
@@ -657,10 +664,17 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                 workaroundNullCursorAnchorInfo()
             }
         }
+        // #region debug-point E:onStartInputView-exit
+        Timber.i("[WXKB-DEBUG] E:onStartInputView exit kbH=${kbv?.height} kbVis=${kbv?.visibility} inputView=${inputView != null}")
+        // #endregion
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         Timber.d("onFinishInputView: finishingInput=$finishingInput")
+        // #region debug-point D:onFinishInputView
+        val kbv = inputView?.keyboardView
+        Timber.i("[WXKB-DEBUG] D:onFinishInputView finishingInput=$finishingInput tongBan.isShowing=${TongBanManager.getInstance()?.isShowing} kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
         decorLocationUpdated = false
         inputDeviceManager.onFinishInputView()
         currentInputConnection?.apply {
@@ -679,6 +693,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         if (finishingInput) {
             TongBanManager.getInstance()?.forceReset()
         }
+        // #region debug-point D:onFinishInputView-exit
+        Timber.i("[WXKB-DEBUG] D:onFinishInputView exit kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
     }
 
     fun commitText(text: String) {

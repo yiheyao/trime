@@ -247,6 +247,10 @@ class TongBanManager(
     fun expandToFull() {
         val u = ui ?: return
         val root = u.root
+        // #region debug-point C:expandToFull
+        val kbv = service.inputViewPublic?.keyboardView
+        Timber.i("[WXKB-DEBUG] C:expandToFull isExpanded=$isExpanded fullDialogH=$fullDialogHeight kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
         if (fullDialogHeight <= smallDialogHeight) {
             // 没有 keyboardHeightPx 信息时直接展开到合理值
             fullDialogHeight = dp(280)
@@ -428,6 +432,10 @@ class TongBanManager(
      */
     fun forceReset() {
         val c = container ?: return
+        // #region debug-point C:forceReset
+        val kbv = service.inputViewPublic?.keyboardView
+        Timber.i("[WXKB-DEBUG] C:forceReset entry isShowing=$isShowing isExpanded=$isExpanded kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
         controller?.cancelRequest()
         c.visibility = View.GONE
         parentContainer?.visibility = View.GONE
@@ -447,6 +455,9 @@ class TongBanManager(
         }
         isShowing = false
         // 不调 onDialogClosed（避免 setKeyboardVisible 干扰）
+        // #region debug-point C:forceReset-exit
+        Timber.i("[WXKB-DEBUG] C:forceReset exit (keyboardView NOT restored) kbH=${kbv?.height} kbVis=${kbv?.visibility}")
+        // #endregion
     }
 
     /** 切换显示 */

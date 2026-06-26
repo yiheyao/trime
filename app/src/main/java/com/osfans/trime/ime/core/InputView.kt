@@ -45,6 +45,7 @@ import com.osfans.trime.BuildConfig
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.kodein.di.instance
+import timber.log.Timber
 import splitties.dimensions.dp
 import splitties.views.dsl.constraintlayout.above
 import splitties.views.dsl.constraintlayout.below
@@ -284,13 +285,6 @@ class InputView(
 
     private fun toggleTongBan() {
         val height = currentKeyboardHeightPx()
-        if (BuildConfig.DEBUG) {
-            android.widget.Toast.makeText(
-                themedContext,
-                "童 clicked, h=$height, show=${!tongBanManager.isShowing}",
-                android.widget.Toast.LENGTH_SHORT,
-            ).show()
-        }
         if (tongBanManager.isShowing) {
             tongBanManager.hide()
         } else {
@@ -314,6 +308,9 @@ class InputView(
      * 收起前同步隐藏 preedit 候选条；展开后恢复。
      */
     private fun setKeyboardVisible(visible: Boolean) {
+        // #region debug-point A:setKeyboardVisible-entry
+        Timber.i("[WXKB-DEBUG] A:setKeyboardVisible entry visible=$visible fullKH=$fullKeyboardHeight curH=${keyboardView.height} vis=${keyboardView.visibility} tongBan.isShowing=${tongBanManager.isShowing}")
+        // #endregion
         // 首次进入：若还没记录 fullKeyboardHeight，则用当前 keyboardView 高度作为基准
         if (fullKeyboardHeight <= 0 && keyboardView.height > 0) {
             fullKeyboardHeight = keyboardView.height
@@ -324,6 +321,9 @@ class InputView(
             preedit.ui.root.visibility = if (visible) View.VISIBLE else View.GONE
             requestLayout()
             invalidate()
+            // #region debug-point A:setKeyboardVisible-early-return
+            Timber.i("[WXKB-DEBUG] A:setKeyboardVisible early-return(no fullKH) vis=${keyboardView.visibility}")
+            // #endregion
             return
         }
         val targetH = if (visible) fullKeyboardHeight else 0
@@ -342,6 +342,9 @@ class InputView(
                 requestLayout()
                 invalidate()
             }
+            // #region debug-point A:setKeyboardVisible-noanim
+            Timber.i("[WXKB-DEBUG] A:setKeyboardVisible no-anim startH=$startH targetH=$targetH vis=${keyboardView.visibility}")
+            // #endregion
             return
         }
 
