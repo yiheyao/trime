@@ -37,7 +37,7 @@
     <string name="expand_keypress_area_to_edge">Expand keypress area to edge</string>
     <string name="use_soft_cursor">Use soft cursor (^) in preedit</string>
     <string name="deploy">Deploy</string>
-    <string name="sync_user_data_immediately">Sync user data immediately</string>
+    <string name="sync_user_data_immediately">保存行为数据到词库</string>
     <string name="reset_success">Reset Succeeded!</string>
     <string name="reset_failure">Reset Failed!</string>
     <string name="deploy_progress">Deploying…</string>

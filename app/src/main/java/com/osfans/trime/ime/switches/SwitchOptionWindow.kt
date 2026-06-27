@@ -149,15 +149,26 @@ class SwitchOptionWindow :
 
     private fun updateSchemaOptionEntries() {
         val switches = rime.run { schemaCached }.switches
-        // 过滤掉已在其它入口处理的中英文/繁简切换，避免在底部工具栏重复显示
+        // 过滤掉已在其它入口处理的中英文/繁简切换，避免在底部工具栏重复显示。
+        // 同时按 states 标签里的"汉字/漢"做二次过滤，防止用户自定义 schema 用别的名字（如
+        // "trad" / "simp"）绕过按名字的过滤。
         val filteredSwitches = switches.filterNot {
-            it.name == "ascii_mode" || it.name == "simplification"
+            it.name == "ascii_mode" ||
+                it.name == "simplification" ||
+                it.states.any { s -> s == "汉字" || s == "漢字" } ||
+                it.states.any { s -> s == "中文" || s == "西文" }
         }
         Timber.tag("SwitchOptionWindow").d(
             "updateSchemaOptionEntries: schema=%s, raw=%s, filtered=%s",
             rime.run { schemaCached.schemaId },
-            switches.map { it.name },
-            filteredSwitches.map { it.name },
+            switches.map { "${it.name}(${it.states})" },
+            filteredSwitches.map { "${it.name}(${it.states})" },
+        )
+        // 调试日志：确认应被隐藏的开关确实被过滤掉了
+        val removed = (switches - filteredSwitches.toSet()).map { "${it.name}(${it.states})" }
+        Timber.tag("SwitchOptionWindow").d(
+            "updateSchemaOptionEntries: removed (should be hidden) = %s",
+            removed,
         )
         adapter.submitList(
             listOf(
