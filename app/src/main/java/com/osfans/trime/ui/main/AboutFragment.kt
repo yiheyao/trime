@@ -98,6 +98,10 @@ class AboutFragment : PaddingPreferenceFragment() {
                 ) {
                     findNavController().navigate(NavigationRoute.License)
                 }
+                addPreference(
+                    R.string.about_oss_compliance_title,
+                    R.string.about_oss_compliance,
+                )
             }
             addCategory("") {
                 isIconSpaceReserved = false
