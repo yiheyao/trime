@@ -1163,33 +1163,33 @@ preset_keyboards:
    # height: 48
     ascii_mode: 1
     keys:
-    
-      - {click: '{}{Left}', long_click: '【】{Left}', key_back_color: bgn, key_text_color: tgn}
-      - {click: '+', long_click: '#', key_back_color: bgn, key_text_color: tgn}
-      - {click: 1}
-      - {click: 2}
-      - {click: 3}
-      - {click: space1, key_back_color: bgn, key_text_color: tgn}
 
-      - {click: '_', long_click: '[]{Left}', key_back_color: bgn, key_text_color: tgn}
-      - {click: '-', long_click: '%', key_back_color: bgn, key_text_color: tgn}
-      - {click: 4}
-      - {click: 5}
-      - {click: 6}
-      - {label: EN, click: Keyboard_defaulten, key_back_color: bgn, key_text_color: tgn}
-
-      - {click: '(){Left}', long_click: '@', key_back_color: bgn, key_text_color: tgn}
-      - {click: '*', long_click: '±', key_back_color: bgn, key_text_color: tgn}
-      - {click: 7}
-      - {click: 8}
-      - {click: 9, swipe_down: paste}
+      # 行 1: + 占原 {} 位；1/2/3 三个键加宽，占满原 4 个键位置；末尾为退格（原空格位置）
+      - {click: '+', key_back_color: bgn, key_text_color: tgn}
+      - {click: 1, width: 22.25}
+      - {click: 2, width: 22.25}
+      - {click: 3, width: 22.25}
       - {click: BackSpace, key_back_color: bbs, key_text_color: tbs}
 
-      - {click: Keyboard_default, long_click: ':', key_back_color: bgn, key_text_color: 'tgn'}
-      - {click: '/', long_click: '\', key_back_color: bgn, key_text_color: tgn}
-      - {click: ., long_click: Keyboard_bqrw, key_back_color: bgn, key_text_color: tgn}
-      - {click: 0}
-      - {click: '=', long_click: '≠', key_back_color: bgn, key_text_color: tgn}
+      # 行 2: - 占原 _ 位；4/5/6 三个键加宽
+      - {click: '-', key_back_color: bgn, key_text_color: tgn}
+      - {click: 4, width: 22.25}
+      - {click: 5, width: 22.25}
+      - {click: 6, width: 22.25}
+      - {click: '@', key_back_color: bgn, key_text_color: tgn}
+
+      # 行 3: % 占原 () 位；7/8/9 三个键加宽；末尾为空格（原退格位置）
+      - {click: '%', key_back_color: bgn, key_text_color: tgn}
+      - {click: 7, width: 22.25}
+      - {click: 8, width: 22.25}
+      - {click: 9, width: 22.25}
+      - {click: space1, key_back_color: bgn, key_text_color: tgn}
+
+      # 行 4: 移除 = 键，. 键移到 = 位置；/ 0 . 三个键加宽
+      - {click: Keyboard_default, key_back_color: bgn, key_text_color: 'tgn'}
+      - {click: '/', width: 22.25, key_back_color: bgn, key_text_color: tgn}
+      - {click: 0, width: 22.25}
+      - {click: ., width: 22.25, key_back_color: bgn, key_text_color: tgn}
       - {click: Return, key_back_color: benter, key_text_color: tenter}
       
   editor:
