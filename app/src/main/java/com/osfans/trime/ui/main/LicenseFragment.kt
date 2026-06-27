@@ -5,17 +5,20 @@
 
 package com.osfans.trime.ui.main
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import androidx.appcompat.app.AlertDialog
+import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
-import com.mikepenz.aboutlibraries.Libs
-import com.mikepenz.aboutlibraries.entity.License
+import androidx.preference.PreferenceViewHolder
 import com.osfans.trime.R
 import com.osfans.trime.ui.common.PaddingPreferenceFragment
+import com.osfans.trime.util.Const
 import kotlinx.coroutines.launch
 
 class LicenseFragment : PaddingPreferenceFragment() {
@@ -28,28 +31,17 @@ class LicenseFragment : PaddingPreferenceFragment() {
         lifecycleScope.launch {
             val context = preferenceManager.context
             preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
-                val jsonString = resources.openRawResource(R.raw.aboutlibraries)
-                    .bufferedReader()
-                    .use { it.readText() }
-                Libs
-                    .Builder()
-                    .withJson(jsonString)
-                    .build()
-                    .libraries
-                    .sortedBy {
-                        if (it.tag == "native") it.uniqueId.uppercase() else it.uniqueId.lowercase()
-                    }.forEach {
-                        addPreference(
-                            Preference(context).apply {
-                                isIconSpaceReserved = false
-                                title = "${it.uniqueId}:${it.artifactVersion}"
-                                summary = it.licenses.joinToString { l -> l.spdxId ?: l.name }
-                                setOnPreferenceClickListener { _ ->
-                                    showLicenseDialog(it.uniqueId, it.licenses)
-                                }
-                            },
-                        )
-                    }
+                // 第三方开源许可证列表只保留本项目适用的两条
+                addLicensePreference(
+                    context = context,
+                    title = getString(R.string.license_gpl_3),
+                    url = Const.LICENSE_URL,
+                )
+                addLicensePreference(
+                    context = context,
+                    title = getString(R.string.license_lgpl_3),
+                    url = Const.LICENSE_LGPL_URL,
+                )
             }
         }
     }
@@ -59,31 +51,50 @@ class LicenseFragment : PaddingPreferenceFragment() {
         viewModel.disableTopOptionsMenu()
     }
 
-    private fun showLicenseDialog(
-        uniqueId: String,
-        licenses: Set<License>,
-    ): Boolean {
-        when (licenses.size) {
-            0 -> {}
-            1 -> showLicenseContent(licenses.first())
-            else -> {
-                val licenseArray = licenses.toTypedArray()
-                val licenseNames = licenseArray.map { it.spdxId ?: it.name }.toTypedArray()
-                AlertDialog
-                    .Builder(requireContext())
-                    .setTitle(uniqueId)
-                    .setItems(licenseNames) { _, idx ->
-                        showLicenseContent(licenseArray[idx])
-                    }.setPositiveButton(android.R.string.cancel, null)
-                    .show()
-            }
-        }
-        return true
+    private fun androidx.preference.PreferenceScreen.addLicensePreference(
+        context: Context,
+        title: String,
+        url: String,
+    ) {
+        addPreference(
+            object : Preference(context) {
+                init {
+                    isIconSpaceReserved = false
+                    this.title = title
+                    this.summary = url
+                    isSelectable = true
+                }
+
+                override fun onBindViewHolder(holder: PreferenceViewHolder) {
+                    super.onBindViewHolder(holder)
+                    // 移除默认 ellipsize 属性，让 summary 完整显示 URL
+                }
+
+                override fun onClick() {
+                    // 用 try/catch 包住 startActivity，避免鸿蒙/EMUI 上
+                    // 没有 <queries> 声明时抛 SecurityException 导致崩溃
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    } catch (t: Throwable) {
+                        Toast.makeText(
+                            context,
+                            "无法打开浏览器，已复制链接到剪贴板：${t.message}",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                        copyToClipboard(context, url)
+                    }
+                }
+            },
+        )
     }
 
-    private fun showLicenseContent(license: License) {
-        if (license.url?.isNotBlank() == true) {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(license.url)))
+    private fun copyToClipboard(context: Context, text: String) {
+        try {
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE)
+                as ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("license url", text))
+        } catch (_: Throwable) {
+            // 剪贴板访问在某些 ROM 上也可能失败，静默忽略
         }
     }
 }

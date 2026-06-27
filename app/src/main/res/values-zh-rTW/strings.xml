@@ -14,6 +14,9 @@
     <string name="opencc_version">OpenCC 版本</string>
     <string name="current_version">當前版本</string>
     <string name="license">許可證</string>
+    <string name="license_choose">選擇要查看的許可證</string>
+    <string name="license_gpl_3">GPL-3.0-or-later (GNU 通用公共許可證 v3.0)</string>
+    <string name="license_lgpl_3">LGPL-3.0-or-later (GNU 寬通用公共許可證 v3.0)</string>
     <string name="privacy_policy">隱私權政策</string>
     <string name="build_info_format">建構者：%1$s\n建構 Git 雜湊值：%2$s\n建構時間：%3$s</string>
     <string name="selected_theme">主題</string>
@@ -87,8 +90,14 @@
     <string name="key_swipe_velocity">觸發按鍵滑動手勢的速度（距離/速度滿足其一即可）</string>
     <string name="build_info">建構資訊</string>
     <string name="telegram">Telegram</string>
-    <string name="about_oss_compliance">本軟體使用開源專案：\nrime-cloverpinyin（LGPL-3.0）：<a href="https://github.com/fkxxyz/rime-cloverpinyin">github.com/fkxxyz/rime-cloverpinyin</a>\nTrime（GPL-3.0）：<a href="https://github.com/osfans/trime">github.com/osfans/trime</a>\n\n完整授權原文：\nGPLv3：<a href="https://www.gnu.org/licenses/gpl-3.0.html">gnu.org/licenses/gpl-3.0.html</a>\nLGPLv3：<a href="https://www.gnu.org/licenses/lgpl-3.0.html">gnu.org/licenses/lgpl-3.0.html</a>\n\n散佈衍生作品請遵守對應 GNU 開源授權全部條款。\n\n合規補充：\n詞庫匯出、打包分享、商用上架、整合進本輸入法釋出：\n- Trime 整體受 GPL-3.0 傳染，整套衍生作品必須全部開源；\n- rime-cloverpinyin 詞庫檔案需可獨立替換，禁止加密嵌入；\n- 兩份授權文字、完整源碼 / 原始 yaml 詞庫已隨附提供。</string>
+    <string name="about_oss_compliance">本軟體使用以下開源專案：\nrime-cloverpinyin（LGPL-3.0）\nTrime（GPL-3.0）\n\n完整授權原文和合規補充見下方。散佈衍生作品請遵守對應 GNU 開源授權全部條款。</string>
     <string name="about_oss_compliance_title">開源合規聲明</string>
+    <string name="about_oss_compliance_repo_clover">rime-cloverpinyin（LGPL-3.0）</string>
+    <string name="about_oss_compliance_repo_clover_url">github.com/fkxxyz/rime-cloverpinyin</string>
+    <string name="about_oss_compliance_repo_trime">Trime（GPL-3.0）</string>
+    <string name="about_oss_compliance_repo_trime_url">github.com/osfans/trime</string>
+    <string name="about_oss_compliance_notes_title">合規補充</string>
+    <string name="about_oss_compliance_notes_summary">詞庫僅導出、打包分享、商用上架、整合進本輸入法釋出：\n- Trime 整體受 GPL-3.0 傳染，整套衍生作品必須全部開源；\n- rime-cloverpinyin 詞庫檔案需獨立可替換，禁止加密嵌入；\n- 兩份協議文本、完整源碼 / 原始 yaml 詞庫已隨附提供。</string>
     <string name="quick_bar">快捷欄</string>
     <string name="copy_done">已複製</string>
     <string name="hook_shift_space">點擊空格時，忽略Shift的鎖定狀態</string>
@@ -122,7 +131,7 @@
     <string name="ask_to_delete_all">刪除全部？</string>
     <string name="ok">確定</string>
     <string name="cancel">取消</string>
-    <string name="licenses_of_third_party_libraries">第三方軟體庫許可證</string>
+    <string name="licenses_of_third_party_libraries">GPLv3 / LGPLv3</string>
     <string name="clipboard">剪貼簿</string>
     <string name="collection">收藏夾</string>
     <string name="simple_key_unpin">取消置頂</string>

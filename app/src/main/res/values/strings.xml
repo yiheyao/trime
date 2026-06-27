@@ -14,6 +14,9 @@
     <string name="opencc_version">OpenCC version</string>
     <string name="current_version">Current version</string>
     <string name="license">License</string>
+    <string name="license_choose">Choose a license to view</string>
+    <string name="license_gpl_3">GPL-3.0-or-later (GNU General Public License v3.0)</string>
+    <string name="license_lgpl_3">LGPL-3.0-or-later (GNU Lesser General Public License v3.0)</string>
     <string name="privacy_policy">Privacy Policy</string>
     <string name="build_info_format">Builder: %1$s\nBuild Git Hash: %2$s\nBuild Time: %3$s</string>
     <string name="selected_theme">Themes</string>
@@ -90,8 +93,14 @@
     <string name="quick_bar">Quick bar</string>
     <string name="copy_done">Copied to clipboard!</string>
     <string name="hook_shift_space">Ignore Shift locked for Space</string>
-    <string name="about_oss_compliance">This software uses the following open source projects:\nrime-cloverpinyin (LGPL-3.0): <a href="https://github.com/fkxxyz/rime-cloverpinyin">github.com/fkxxyz/rime-cloverpinyin</a>\nTrime (GPL-3.0): <a href="https://github.com/osfans/trime">github.com/osfans/trime</a>\n\nFull license texts:\nGPLv3: <a href="https://www.gnu.org/licenses/gpl-3.0.html">gnu.org/licenses/gpl-3.0.html</a>\nLGPLv3: <a href="https://www.gnu.org/licenses/lgpl-3.0.html">gnu.org/licenses/lgpl-3.0.html</a>\n\nDistribute derivative works in compliance with all terms of the corresponding GNU open source licenses.\n\nCompliance notes:\nFor dictionary export, packaging and sharing, commercial listing, or integration into this input method for release:\n- Trime as a whole is under GPL-3.0 copyleft; the entire derivative work must be fully open source.\n- rime-cloverpinyin dictionary files must be independently replaceable; encrypted embedding is prohibited.\n- Both license texts and the complete source code / original yaml dictionaries are included in the package.</string>
+    <string name="about_oss_compliance">This software uses the following open source projects:\nrime-cloverpinyin (LGPL-3.0)\nTrime (GPL-3.0)\n\nFull license texts and compliance notes are listed below. Distribute derivative works in compliance with all terms of the corresponding GNU open source licenses.</string>
     <string name="about_oss_compliance_title">Open Source Compliance</string>
+    <string name="about_oss_compliance_repo_clover">rime-cloverpinyin (LGPL-3.0)</string>
+    <string name="about_oss_compliance_repo_clover_url">github.com/fkxxyz/rime-cloverpinyin</string>
+    <string name="about_oss_compliance_repo_trime">Trime (GPL-3.0)</string>
+    <string name="about_oss_compliance_repo_trime_url">github.com/osfans/trime</string>
+    <string name="about_oss_compliance_notes_title">Compliance Notes</string>
+    <string name="about_oss_compliance_notes_summary">For dictionary export, packaging and sharing, commercial listing, or integration into this input method for release:\n- Trime as a whole is under GPL-3.0 copyleft; the entire derivative work must be fully open source.\n- rime-cloverpinyin dictionary files must be independently replaceable; encrypted embedding is prohibited.\n- Both license texts and the complete source code / original yaml dictionaries are included in the package.</string>
     <string name="hook_shift_num">Ignore Shift locked for 0-9</string>
     <string name="hook_shift_symbol">Ignore Shift locked for Symbol keys</string>
     <string name="hook_shift_arrow">Keep Shift locked for Arrow keys</string>
@@ -133,7 +142,7 @@
     <string name="ask_to_delete_all">Delete All?</string>
     <string name="ok">OK</string>
     <string name="cancel">CANCEL</string>
-    <string name="licenses_of_third_party_libraries">Licenses of third-party libraries</string>
+    <string name="licenses_of_third_party_libraries">GPLv3 / LGPLv3</string>
     <string name="clipboard">Clipboard</string>
     <string name="collection">Collection</string>
     <string name="simple_key_unpin">Unpin</string>

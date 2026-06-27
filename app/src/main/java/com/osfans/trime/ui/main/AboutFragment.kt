@@ -13,6 +13,7 @@ import android.text.Html
 import android.text.method.LinkMovementMethod
 import androidx.navigation.fragment.findNavController
 import androidx.preference.Preference
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.osfans.trime.BuildConfig
 import com.osfans.trime.R
 import com.osfans.trime.ui.common.PaddingPreferenceFragment
@@ -70,6 +71,55 @@ class AboutFragment : PaddingPreferenceFragment() {
             )
             addCategory("") {
                 isIconSpaceReserved = false
+                addPreference(
+                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
+                        isIconSpaceReserved = false
+                        isCopyingEnabled = true
+                        setTitle(R.string.about_oss_compliance_title)
+                        // 开源合规声明的简介
+                        summary = Html.fromHtml(
+                            getString(R.string.about_oss_compliance),
+                            Html.FROM_HTML_MODE_COMPACT,
+                        )
+                    },
+                )
+                addPreference(
+                    R.string.about_oss_compliance_repo_clover,
+                    R.string.about_oss_compliance_repo_clover_url,
+                ) {
+                    startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(Const.CLOVERPINYIN_REPO_URL),
+                        ),
+                    )
+                }
+                addPreference(
+                    R.string.about_oss_compliance_repo_trime,
+                    R.string.about_oss_compliance_repo_trime_url,
+                ) {
+                    startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(Const.TRIME_REPO_URL),
+                        ),
+                    )
+                }
+                addPreference(
+                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
+                        isIconSpaceReserved = false
+                        isCopyingEnabled = true
+                        setTitle(R.string.about_oss_compliance_notes_title)
+                        // 让合规补充里嵌入的 <a> 链接可点击跳转
+                        summary = Html.fromHtml(
+                            getString(R.string.about_oss_compliance_notes_summary),
+                            Html.FROM_HTML_MODE_COMPACT,
+                        )
+                    },
+                )
+            }
+            addCategory("") {
+                isIconSpaceReserved = false
                 addPreference(R.string.privacy_policy) {
                     startActivity(
                         Intent(
@@ -86,13 +136,13 @@ class AboutFragment : PaddingPreferenceFragment() {
                         ),
                     )
                 }
-                addPreference(R.string.license, Const.LICENSE_SPDX_ID) {
-                    startActivity(
-                        Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse(Const.LICENSE_URL),
-                        ),
-                    )
+                addPreference(
+                    R.string.license,
+                    "${Const.LICENSE_SPDX_ID} / LGPL-3.0-or-later",
+                ) {
+                    // 直接导航到 LicenseFragment（避免触发外部 Intent 跳转路径，
+                    // 鸿蒙/EMUI 在没有 <queries> 声明时可能抛 SecurityException 导致崩溃）
+                    findNavController().navigate(NavigationRoute.License)
                 }
                 addPreference(
                     R.string.open_source_licenses,
@@ -100,18 +150,6 @@ class AboutFragment : PaddingPreferenceFragment() {
                 ) {
                     findNavController().navigate(NavigationRoute.License)
                 }
-                addPreference(
-                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
-                        isIconSpaceReserved = false
-                        isCopyingEnabled = true
-                        setTitle(R.string.about_oss_compliance_title)
-                        // 让合规声明里嵌入的 <a> 链接可点击跳转
-                        summary = Html.fromHtml(
-                            getString(R.string.about_oss_compliance),
-                            Html.FROM_HTML_MODE_COMPACT,
-                        )
-                    },
-                )
             }
             addCategory("") {
                 isIconSpaceReserved = false

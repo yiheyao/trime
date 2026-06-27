@@ -6,8 +6,28 @@ SPDX-FileCopyrightText: 2015 - 2024 Rime community
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- 声明应用可见的 intent 范围，避免 Android 11+ (API 30+) 包可见性限制
+         导致 startActivity(Intent.ACTION_VIEW, ...) 抛出 SecurityException / 崩溃 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="http" />
+        </intent>
+        <!-- 允许启动其他 IME 切换 -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+        </intent>
+    </queries>
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />

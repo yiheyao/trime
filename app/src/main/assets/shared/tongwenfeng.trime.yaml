@@ -3964,7 +3964,7 @@ preset_keys:
   VOLUME_UP: {label: 音量+, send: VOLUME_UP}
   VOLUME_MUTE: {label: 静音, send: VOLUME_MUTE}
   # 编辑
-  Shift_L: {label: Shift, preview: '⇪', functional: false, send: Shift_L, shift_lock: click}
+  Shift_L: {label: 'ic@apple-keyboard-shift', preview: '⇪', functional: false, send: Shift_L, shift_lock: click}
   Shift_L3: {label: Shift, preview: '⇪', functional: false, send: Shift_L, shift_lock: click}
   Return: { label: enter_labels, preview: '↩', functional: false, send: Return }
   Return1: {label: Enter, preview: '↩', functional: false, send: Return}
