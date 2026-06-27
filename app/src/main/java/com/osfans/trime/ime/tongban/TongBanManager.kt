@@ -322,14 +322,21 @@ class TongBanManager(
      */
     fun hide(keyboardHeightPx: Int = lastKeyboardHeightPx) {
         Timber.i("[WXKB-DEBUG] hide() entry isShowing=$isShowing isExpanded=$isExpanded")
-        val c = container ?: run {
-            Timber.w("[WXKB-DEBUG] hide() container is null, returning early")
+        // 关键修复：保留 wasShowing 用于下面 onDialogClosed 回调，
+        // 但在 container / controller 为 null 的早退出分支也必须重置 isShowing=false，
+        // 否则在 onConfigurationChanged / 进程重启后 View 被回收，状态机卡在 true，
+        // 下次 startInput 调 hide() 仍然早退出，导致 keyboardView 永远起不来。
+        val wasShowing = isShowing
+        if (container == null || controller == null) {
+            Timber.w("[WXKB-DEBUG] hide() container/controller is null, wasShowing=$wasShowing, force-reset isShowing=false")
+            isShowing = false
+            isExpanded = false
+            // 同时仍调 onDialogClosed 一次，让 InputView 那边有机会恢复 keyboardView 可见性
+            if (wasShowing) onDialogClosed?.invoke()
             return
         }
-        val ctrl = controller ?: run {
-            Timber.w("[WXKB-DEBUG] hide() controller is null, returning early")
-            return
-        }
+        val c = container ?: return
+        val ctrl = controller ?: return
         ctrl.close()
         c.visibility = View.GONE
         // 恢复 tongBanContainer 高度为 wrap_content（弹窗关闭后键盘完整显示）
@@ -340,7 +347,7 @@ class TongBanManager(
         }
         // 隐藏外层容器（不影响 IME 高度）
         parentContainer?.visibility = View.GONE
-        val wasShowing = isShowing
+        // wasShowing 已在函数顶部记录（329 行），此处只重置 isShowing 状态
         isShowing = false
         isExpanded = false
         // 清理弹窗 alpha + height（避免动画中间态残留）
