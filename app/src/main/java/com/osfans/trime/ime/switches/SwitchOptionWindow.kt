@@ -28,6 +28,7 @@ import com.osfans.trime.util.AppUtils
 import kotlinx.coroutines.launch
 import org.kodein.di.instance
 import splitties.dimensions.dp
+import timber.log.Timber
 import splitties.views.dsl.constraintlayout.constraintLayout
 import splitties.views.dsl.constraintlayout.endOfParent
 import splitties.views.dsl.constraintlayout.lParams
@@ -152,6 +153,12 @@ class SwitchOptionWindow :
         val filteredSwitches = switches.filterNot {
             it.name == "ascii_mode" || it.name == "simplification"
         }
+        Timber.tag("SwitchOptionWindow").d(
+            "updateSchemaOptionEntries: schema=%s, raw=%s, filtered=%s",
+            rime.run { schemaCached.schemaId },
+            switches.map { it.name },
+            filteredSwitches.map { it.name },
+        )
         adapter.submitList(
             listOf(
                 *staticEntries,
@@ -191,17 +198,7 @@ class SwitchOptionWindow :
     override fun onCreateBarView() = barExternalView
 
     override fun onAttached() {
-        rime.launchOnReady { api ->
-            val data = api.currentSchema().switches
-            service.lifecycleScope.launch {
-                adapter.submitList(
-                    listOf(
-                        *staticEntries,
-                        *data.mapNotNull { SwitchOptionEntry.fromSwitch(rime, it) }.toTypedArray(),
-                    ),
-                )
-            }
-        }
+        updateSchemaOptionEntries()
     }
 
     override fun onDetached() {

@@ -140,8 +140,8 @@ class AlwaysUi(
             },
         )
         // 「童」按钮：使用 marginEnd 推到 rightMostButton 左侧
-        // 童按钮宽度 = 36dp, 与圆圈间隔 4dp
-        val tongBanW = dp(36)
+        // 童按钮宽度 = 40dp（与 ascii_mode_button 等其它工具栏按钮同宽），与圆圈间隔 4dp
+        val tongBanW = rightHeight
         add(
             tongBanButton,
             lParams(tongBanW, tongBanW) {

@@ -456,6 +456,11 @@ class InputView(
         info: EditorInfo,
         restarting: Boolean = false,
     ) {
+        Timber.tag("TrimePwd").i(
+            "startInput restarting=%s, pkg=%s, field=%s, hint=%s, inputType=0x%x, tongBan.isShowing=%s",
+            restarting, info.packageName, info.fieldName, info.hintText, info.inputType,
+            tongBanManager.isShowing,
+        )
         Timber.i("[WXKB-DEBUG] startInput entry restarting=$restarting tongBan.isShowing=${tongBanManager.isShowing} tongBan.isExpanded=${tongBanManager.isExpandedForDebug} kbVis=${keyboardView.visibility} kbH=${keyboardView.height}")
         updateEnterKeyLabel(info)
         broadcaster.onStartInput(info)
@@ -463,10 +468,11 @@ class InputView(
             // 切聊天/重新开始输入：销毁童伴 session
             windowManager.attachWindow(KeyboardWindow)
         }
-        // 密码字段（系统锁屏密码、APK 安装确认等）必须强制清掉童伴弹窗状态，
-        // 否则童伴劫持 commitText 会导致用户输入的数字进不到系统密码框。
-        val isPasswordField = isPasswordInput(info)
-        if (isPasswordField) {
+        // 密码/数字字段（系统锁屏密码、APK 安装确认 PIN 等）必须强制清掉童伴弹窗状态，
+        // 否则童伴劫持 commitText 会导致用户输入的数字进不到系统输入框。
+        val isSensitiveField = isSensitiveInput(info)
+        if (isSensitiveField) {
+            Timber.tag("TrimePwd").i("startInput: sensitive field detected, forceReset tongBan")
             tongBanManager.forceReset()
         }
         // 无论是否 restarting，只要童伴弹窗还在显示（如查询超时/无网络后用户重新点击输入框），
@@ -477,6 +483,26 @@ class InputView(
         } else {
             Timber.i("[WXKB-DEBUG] startInput: tongBan not showing, keyboard should be visible")
         }
+    }
+
+    /** 判断 EditorInfo 是否为"敏感"输入字段（密码 / 纯数字 / 系统弹窗等） */
+    private fun isSensitiveInput(info: EditorInfo): Boolean {
+        val type = info.inputType
+        val cls = type and android.text.InputType.TYPE_MASK_CLASS
+        val variation = type and android.text.InputType.TYPE_MASK_VARIATION
+        // 数字密码
+        if (cls == android.text.InputType.TYPE_CLASS_NUMBER &&
+            variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        ) return true
+        // 文本密码（含可见/Web 密码）
+        if (cls == android.text.InputType.TYPE_CLASS_TEXT &&
+            (variation == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD)
+        ) return true
+        // 纯数字字段（如系统锁屏 PIN 码对话框、APK 安装确认）—— 也按敏感处理
+        if (cls == android.text.InputType.TYPE_CLASS_NUMBER) return true
+        return false
     }
 
     /** 判断 EditorInfo 是否为密码输入字段（系统锁屏密码、APK 安装确认等） */

@@ -215,8 +215,14 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                                 val keyCode = it.value.keyCode
                                 if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                                     // recognized keyCode
-                                    // 童伴弹窗打开时，把按键路由到弹窗输入框，不走系统的 sendDownUpKeyEvent
-                                    if (TongBanManager.isShowingAndFocused()) {
+                                    val tongBanShowing = TongBanManager.isShowingAndFocused()
+                                    val isSensitive = isCurrentInputSensitive()
+                                    // 密码/数字字段时，即使童伴浮窗标记为显示，也强制走系统
+                                    if (!isSensitive && tongBanShowing) {
+                                        Timber.tag("TrimePwd").i(
+                                            "KeyMessage virtual keyCode=%d → TongBan (isSensitive=%s)",
+                                            keyCode, isSensitive,
+                                        )
                                         val ch = keyCodeToChar(keyCode)
                                         if (ch != null) {
                                             commitText(ch.toString())
@@ -227,6 +233,10 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                                             TongBanManager.deleteLastChar()
                                         }
                                     } else {
+                                        Timber.tag("TrimePwd").i(
+                                            "KeyMessage virtual keyCode=%d → sendDownUpKeyEvent (isSensitive=%s, tongBanShowing=%s)",
+                                            keyCode, isSensitive, tongBanShowing,
+                                        )
                                         sendDownUpKeyEvent(
                                             keyCode,
                                             it.modifiers.metaState or meta(
@@ -254,7 +264,9 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
                         if (keyCode != KeyEvent.KEYCODE_UNKNOWN) {
                             // recognized keyCode
                             // 童伴弹窗打开时，把按键路由到弹窗输入框，不走系统的 sendDownKey/UpKeyEvent
-                            if (TongBanManager.isShowingAndFocused()) {
+                            val tongBanShowing = TongBanManager.isShowingAndFocused()
+                            val isSensitive = isCurrentInputSensitive()
+                            if (!isSensitive && tongBanShowing) {
                                 val ch = keyCodeToChar(keyCode)
                                 if (ch != null && !it.modifiers.release) {
                                     commitText(ch.toString())
@@ -699,17 +711,32 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     fun commitText(text: String) {
-        // 当前输入是密码字段（如系统锁屏密码确认对话框）时，绝对不能让童伴浮窗劫持输入，
-        // 否则用户输入的数字/字符不会出现在系统密码框里，导致无法解锁。
-        val isPasswordField = isCurrentInputPassword()
-        // 童伴浮窗打开时，将输入重定向到弹窗的 EditText（不再走 WeChat 的输入连接）
-        if (!isPasswordField && TongBanManager.isShowingAndFocused()) {
+        // 当前输入是密码/数字字段（如系统锁屏密码确认对话框、APK 安装 PIN 码）时，
+        // 绝对不能让童伴浮窗劫持输入，否则用户输入的数字/字符不会出现在系统输入框里。
+        val isSensitive = isCurrentInputSensitive()
+        // 童伴浮窗打开时，将输入重定向到弹窗的 EditText（不再走系统的 InputConnection）
+        if (!isSensitive && TongBanManager.isShowingAndFocused()) {
+            Timber.tag("TrimePwd").i(
+                "commitText '%s' → TongBan (isSensitive=%s, tongBan.showing=%s)",
+                text, isSensitive, TongBanManager.isShowingAndFocused(),
+            )
             TongBanManager.appendInputText(text)
             lastCommittedText = text
             composingText = ""
             return
         }
-        val ic = currentInputConnection ?: return
+        val ic = currentInputConnection
+        if (ic == null) {
+            Timber.tag("TrimePwd").w(
+                "commitText '%s' FAILED: currentInputConnection is null (isSensitive=%s)",
+                text, isSensitive,
+            )
+            return
+        }
+        Timber.tag("TrimePwd").i(
+            "commitText '%s' → system InputConnection (isSensitive=%s)",
+            text, isSensitive,
+        )
 
         // when composing text equals commit content, finish composing text as-is
         if (composingText.isNotEmpty() && composingText == text) {
@@ -728,13 +755,46 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         val type = info.inputType
         val cls = type and InputType.TYPE_MASK_CLASS
         val variation = type and InputType.TYPE_MASK_VARIATION
-        // 数字密码 / 文本密码 / Web 密码 / 可见密码 都视为密码字段
-        return (cls == InputType.TYPE_CLASS_NUMBER &&
+        val flags = type and InputType.TYPE_MASK_FLAGS
+        val isPwd = (cls == InputType.TYPE_CLASS_NUMBER &&
             variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD) ||
             (cls == InputType.TYPE_CLASS_TEXT &&
                 (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
                     variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
                     variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD))
+        // 密码字段 / 数字字段 / 系统锁屏密码框都打日志，方便排查
+        if (isPwd || cls == InputType.TYPE_CLASS_NUMBER) {
+            Timber.tag("TrimePwd").i(
+                "isCurrentInputPassword=%s, cls=%d, variation=%d, flags=%d, raw=0x%x, pkg=%s, field=%s, hint=%s",
+                isPwd, cls, variation, flags, type,
+                info.packageName, info.fieldName, info.hintText,
+            )
+        }
+        return isPwd
+    }
+
+    /**
+     * 当前输入字段是否是"敏感"输入框（密码 / 纯数字 / 系统弹窗等），
+     * 此类字段童伴浮窗绝对不能劫持输入，必须走系统 InputConnection。
+     */
+    private fun isCurrentInputSensitive(): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        val type = info.inputType
+        val cls = type and InputType.TYPE_MASK_CLASS
+        val variation = type and InputType.TYPE_MASK_VARIATION
+        // 数字密码
+        if (cls == InputType.TYPE_CLASS_NUMBER &&
+            variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        ) return true
+        // 文本密码（含可见/Web 密码）
+        if (cls == InputType.TYPE_CLASS_TEXT &&
+            (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD)
+        ) return true
+        // 纯数字字段（如系统锁屏 PIN 码对话框、APK 安装确认）—— 也按敏感处理
+        if (cls == InputType.TYPE_CLASS_NUMBER) return true
+        return false
     }
 
     /**
