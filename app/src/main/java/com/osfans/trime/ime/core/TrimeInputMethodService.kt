@@ -699,8 +699,11 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
     }
 
     fun commitText(text: String) {
+        // 当前输入是密码字段（如系统锁屏密码确认对话框）时，绝对不能让童伴浮窗劫持输入，
+        // 否则用户输入的数字/字符不会出现在系统密码框里，导致无法解锁。
+        val isPasswordField = isCurrentInputPassword()
         // 童伴浮窗打开时，将输入重定向到弹窗的 EditText（不再走 WeChat 的输入连接）
-        if (TongBanManager.isShowingAndFocused()) {
+        if (!isPasswordField && TongBanManager.isShowingAndFocused()) {
             TongBanManager.appendInputText(text)
             lastCommittedText = text
             composingText = ""
@@ -717,6 +720,21 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
         lastCommittedText = text
         composingText = ""
         InputFeedbackManager.textCommitSpeak(text)
+    }
+
+    /** 当前输入字段是否是密码类型（系统锁屏密码、APK 安装确认等） */
+    private fun isCurrentInputPassword(): Boolean {
+        val info = currentInputEditorInfo ?: return false
+        val type = info.inputType
+        val cls = type and InputType.TYPE_MASK_CLASS
+        val variation = type and InputType.TYPE_MASK_VARIATION
+        // 数字密码 / 文本密码 / Web 密码 / 可见密码 都视为密码字段
+        return (cls == InputType.TYPE_CLASS_NUMBER &&
+            variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD) ||
+            (cls == InputType.TYPE_CLASS_TEXT &&
+                (variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                    variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                    variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD))
     }
 
     /**

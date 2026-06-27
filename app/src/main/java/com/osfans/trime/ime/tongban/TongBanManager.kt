@@ -159,15 +159,15 @@ class TongBanManager(
      */
     fun show(keyboardHeightPx: Int) {
         val c = container ?: run {
-            android.widget.Toast.makeText(context, "container is null", android.widget.Toast.LENGTH_SHORT).show()
+            // android.widget.Toast.makeText(context, "container is null", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val u = ui ?: run {
-            android.widget.Toast.makeText(context, "ui is null", android.widget.Toast.LENGTH_SHORT).show()
+            // android.widget.Toast.makeText(context, "ui is null", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         val ctrl = controller ?: run {
-            android.widget.Toast.makeText(context, "ctrl is null", android.widget.Toast.LENGTH_SHORT).show()
+            // android.widget.Toast.makeText(context, "ctrl is null", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         lastKeyboardHeightPx = keyboardHeightPx
@@ -225,14 +225,14 @@ class TongBanManager(
             ) {
                 if (!reported && v.width > 0 && v.height > 0) {
                     reported = true
-                    if (BuildConfig.DEBUG) {
-                        val loc = IntArray(2).also { v.getLocationOnScreen(it) }
-                        android.widget.Toast.makeText(
-                            context,
-                            "弹窗(状态1) ${v.width}x${v.height}, y=${loc[1]}",
-                            android.widget.Toast.LENGTH_LONG,
-                        ).show()
-                    }
+                    // if (BuildConfig.DEBUG) {
+                    //     val loc = IntArray(2).also { v.getLocationOnScreen(it) }
+                    //     android.widget.Toast.makeText(
+                    //         context,
+                    //         "弹窗(状态1) ${v.width}x${v.height}, y=${loc[1]}",
+                    //         android.widget.Toast.LENGTH_LONG,
+                    //     ).show()
+                    // }
                     v.removeOnLayoutChangeListener(this)
                 }
             }
@@ -267,13 +267,13 @@ class TongBanManager(
         flp.height = 0
         root.layoutParams = flp
         root.requestLayout()
-        if (BuildConfig.DEBUG) {
-            android.widget.Toast.makeText(
-                context,
-                "弹窗展开(跟随键盘) kb_total=${fullDialogHeight}px",
-                android.widget.Toast.LENGTH_SHORT,
-            ).show()
-        }
+        // if (BuildConfig.DEBUG) {
+        //     android.widget.Toast.makeText(
+        //         context,
+        //         "弹窗展开(跟随键盘) kb_total=${fullDialogHeight}px",
+        //         android.widget.Toast.LENGTH_SHORT,
+        //     ).show()
+        // }
     }
 
     /**
@@ -430,13 +430,13 @@ class TongBanManager(
             }
             isExpanded = false
         }, HEIGHT_ANIM_DURATION_MS + 20L)
-        if (BuildConfig.DEBUG) {
-            android.widget.Toast.makeText(
-                context,
-                "弹窗收缩(跟随键盘)",
-                android.widget.Toast.LENGTH_SHORT,
-            ).show()
-        }
+        // if (BuildConfig.DEBUG) {
+        //     android.widget.Toast.makeText(
+        //         context,
+        //         "弹窗收缩(跟随键盘)",
+        //         android.widget.Toast.LENGTH_SHORT,
+        //     ).show()
+        // }
     }
 
     /**

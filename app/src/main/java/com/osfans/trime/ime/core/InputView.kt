@@ -463,6 +463,12 @@ class InputView(
             // 切聊天/重新开始输入：销毁童伴 session
             windowManager.attachWindow(KeyboardWindow)
         }
+        // 密码字段（系统锁屏密码、APK 安装确认等）必须强制清掉童伴弹窗状态，
+        // 否则童伴劫持 commitText 会导致用户输入的数字进不到系统密码框。
+        val isPasswordField = isPasswordInput(info)
+        if (isPasswordField) {
+            tongBanManager.forceReset()
+        }
         // 无论是否 restarting，只要童伴弹窗还在显示（如查询超时/无网络后用户重新点击输入框），
         // 都需要隐藏弹窗并恢复键盘，否则键盘无法打开
         if (tongBanManager.isShowing) {
@@ -471,6 +477,19 @@ class InputView(
         } else {
             Timber.i("[WXKB-DEBUG] startInput: tongBan not showing, keyboard should be visible")
         }
+    }
+
+    /** 判断 EditorInfo 是否为密码输入字段（系统锁屏密码、APK 安装确认等） */
+    private fun isPasswordInput(info: EditorInfo): Boolean {
+        val type = info.inputType
+        val cls = type and android.text.InputType.TYPE_MASK_CLASS
+        val variation = type and android.text.InputType.TYPE_MASK_VARIATION
+        return (cls == android.text.InputType.TYPE_CLASS_NUMBER &&
+            variation == android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD) ||
+            (cls == android.text.InputType.TYPE_CLASS_TEXT &&
+                (variation == android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                    variation == android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                    variation == android.text.InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD))
     }
 
     fun finishInput() {

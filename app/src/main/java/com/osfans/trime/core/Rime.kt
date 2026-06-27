@@ -230,7 +230,7 @@ class Rime :
             } else if (status.schemaName.isNotEmpty() &&
                 !status.schemaName.startsWith('.')
             ) {
-                status.schemaName.take(2)
+                "中"
             } else {
                 ""
             }

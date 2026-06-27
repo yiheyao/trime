@@ -132,7 +132,7 @@ class TongBanDialogController(
         lastNetworkType = nowType
 
         querying = true
-        debugToast("查询中… cleaned='$cleaned'")
+        // debugToast("查询中… cleaned='$cleaned'")
         val request = TongBanNetworkClient.newRequest()
         currentRequest = request
 
@@ -182,7 +182,7 @@ class TongBanDialogController(
                 } else {
                     // 成功响应：打字机流式输出到响应框
                     ui.showResponseStream(resp.response)
-                    debugToast("响应: ${resp.response.take(50)}")
+                    // debugToast("响应: ${resp.response.take(50)}")
                 }
             }
             is TongBanResult.Unauthorized -> {

@@ -69,9 +69,9 @@ class AlwaysUi(
         contentDescription = "tongban"
         setOnClickListener {
             Timber.d("童 button clicked")
-            if (BuildConfig.DEBUG) {
-                android.widget.Toast.makeText(ctx, "童 clicked", android.widget.Toast.LENGTH_SHORT).show()
-            }
+            // if (BuildConfig.DEBUG) {
+            //     android.widget.Toast.makeText(ctx, "童 clicked", android.widget.Toast.LENGTH_SHORT).show()
+            // }
             _onTongBanClick?.invoke()
         }
     }
