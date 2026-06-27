@@ -97,6 +97,19 @@ class LongClickPreference(context: Context) : Preference(context) {
     }
 }
 
+/**
+ * Preference whose summary supports HTML <a> tags as clickable links.
+ * Use this when the summary text contains URLs that should be tappable.
+ */
+class HtmlSummaryPreference(context: Context) : Preference(context) {
+    override fun onBindViewHolder(holder: PreferenceViewHolder) {
+        super.onBindViewHolder(holder)
+        // 启用 movementMethod，否则 HTML <a> 不会响应点击
+        holder.itemView.findViewById<android.widget.TextView>(android.R.id.summary)
+            ?.movementMethod = android.text.method.LinkMovementMethod.getInstance()
+    }
+}
+
 fun PreferenceGroup.addPreference(
     @StringRes title: Int,
     @StringRes summary: Int? = null,

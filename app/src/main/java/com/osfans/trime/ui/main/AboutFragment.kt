@@ -9,6 +9,8 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Html
+import android.text.method.LinkMovementMethod
 import androidx.navigation.fragment.findNavController
 import androidx.preference.Preference
 import com.osfans.trime.BuildConfig
@@ -99,8 +101,16 @@ class AboutFragment : PaddingPreferenceFragment() {
                     findNavController().navigate(NavigationRoute.License)
                 }
                 addPreference(
-                    R.string.about_oss_compliance_title,
-                    R.string.about_oss_compliance,
+                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
+                        isIconSpaceReserved = false
+                        isCopyingEnabled = true
+                        setTitle(R.string.about_oss_compliance_title)
+                        // 让合规声明里嵌入的 <a> 链接可点击跳转
+                        summary = Html.fromHtml(
+                            getString(R.string.about_oss_compliance),
+                            Html.FROM_HTML_MODE_COMPACT,
+                        )
+                    },
                 )
             }
             addCategory("") {
