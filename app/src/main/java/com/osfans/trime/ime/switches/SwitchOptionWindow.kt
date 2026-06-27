@@ -45,21 +45,6 @@ class SwitchOptionWindow :
     private val staticEntries by lazy {
         arrayOf(
             SwitchOptionEntry.Static(
-                context.getString(R.string.theme),
-                R.drawable.ic_baseline_color_lens_24,
-                SwitchOptionEntry.Static.Type.ThemeList,
-            ),
-            SwitchOptionEntry.Static(
-                context.getString(R.string.schemata),
-                R.drawable.ic_round_view_list_24,
-                SwitchOptionEntry.Static.Type.SchemaList,
-            ),
-            SwitchOptionEntry.Static(
-                context.getString(R.string.update_config),
-                R.drawable.ic_baseline_sync_24,
-                SwitchOptionEntry.Static.Type.UpdateConfig,
-            ),
-            SwitchOptionEntry.Static(
                 context.getString(R.string.virtual_keyboard),
                 R.drawable.ic_baseline_keyboard_24,
                 SwitchOptionEntry.Static.Type.Keyboard,
@@ -163,10 +148,14 @@ class SwitchOptionWindow :
 
     private fun updateSchemaOptionEntries() {
         val switches = rime.run { schemaCached }.switches
+        // 过滤掉已在其它入口处理的中英文/繁简切换，避免在底部工具栏重复显示
+        val filteredSwitches = switches.filterNot {
+            it.name == "ascii_mode" || it.name == "simplification"
+        }
         adapter.submitList(
             listOf(
                 *staticEntries,
-                *switches.mapNotNull { SwitchOptionEntry.fromSwitch(rime, it) }.toTypedArray(),
+                *filteredSwitches.mapNotNull { SwitchOptionEntry.fromSwitch(rime, it) }.toTypedArray(),
             ),
         )
     }
