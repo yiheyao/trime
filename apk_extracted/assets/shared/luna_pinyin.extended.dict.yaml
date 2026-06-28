@@ -1,0 +1,34 @@
+# Rime dictionary
+# encoding: utf-8
+# 整合词库集：将 THUOCL 系列 + 搜狗新词 合并到 luna_pinyin 主词库
+# 词频来源：
+#   - THUOCL_animal       (清华动物词库)
+#   - THUOCL_caijing      (清华财经词库)
+#   - THUOCL_car          (清华汽车词库)
+#   - THUOCL_chengyu      (清华成语词库)
+#   - THUOCL_diming       (清华地名词库)
+#   - THUOCL_food         (清华食物词库)
+#   - THUOCL_IT           (清华 IT 词库)
+#   - THUOCL_law          (清华法律词库)
+#   - THUOCL_lishimingren (清华历史名人词库)
+#   - THUOCL_medical      (清华医学词库)
+#   - THUOCL_poem         (清华古诗词词库)
+#   - sogou_new_words     (搜狗新词)
+
+name: luna_pinyin.extended
+version: "1"
+sort: by_weight
+import_tables:
+  - luna_pinyin
+  - THUOCL_animal
+  - THUOCL_caijing
+  - THUOCL_car
+  - THUOCL_chengyu
+  - THUOCL_diming
+  - THUOCL_food
+  - THUOCL_IT
+  - THUOCL_law
+  - THUOCL_lishimingren
+  - THUOCL_medical
+  - THUOCL_poem
+  - sogou_new_words

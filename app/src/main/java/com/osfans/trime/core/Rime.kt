@@ -242,9 +242,6 @@ class Rime :
         handleRimeMessage(4, arrayOf(commit.invoke()))
         val context = getRimeContext()
         handlePreedit(context.composition)
-        if (context.composition.length <= 0 && lastAsciiTipsText != asciiTipsText) {
-            showAsciiSwitchTips()
-        }
         if (getRimeOption("paging_mode")) {
             handleRimeMessage(7, arrayOf(context.menu))
         } else {
@@ -285,9 +282,6 @@ class Rime :
                 val status = getRimeStatus()
                 statusCached = status
                 updateSchemaCached(status)
-                if (it.data.option == "ascii_mode") {
-                    showAsciiSwitchTips()
-                }
             }
             is RimeMessage.DeployMessage -> {
                 if (it.data == RimeMessage.DeployMessage.State.Start) {
