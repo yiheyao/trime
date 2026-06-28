@@ -31,16 +31,11 @@ class LicenseFragment : PaddingPreferenceFragment() {
         lifecycleScope.launch {
             val context = preferenceManager.context
             preferenceScreen = preferenceManager.createPreferenceScreen(requireContext()).apply {
-                // 第三方开源许可证列表只保留本项目适用的两条
+                // 第三方开源许可证列表只保留本项目适用的本项目许可证
                 addLicensePreference(
                     context = context,
                     title = getString(R.string.license_gpl_3),
                     url = Const.LICENSE_URL,
-                )
-                addLicensePreference(
-                    context = context,
-                    title = getString(R.string.license_lgpl_3),
-                    url = Const.LICENSE_LGPL_URL,
                 )
             }
         }

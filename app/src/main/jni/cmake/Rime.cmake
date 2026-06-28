@@ -13,12 +13,12 @@ foreach(plugin ${RIME_PLUGINS})
   endif()
 endforeach()
 
-# librime-lua
-if(NOT EXISTS "${CMAKE_SOURCE_DIR}/librime/plugins/librime-lua/thirdparty")
-  file(CREATE_LINK "${CMAKE_SOURCE_DIR}/librime-lua-deps"
-       "${CMAKE_SOURCE_DIR}/librime/plugins/librime-lua/thirdparty"
-       COPY_ON_ERROR SYMBOLIC)
-endif()
+# librime-lua 已禁用
+# if(NOT EXISTS "${CMAKE_SOURCE_DIR}/librime/plugins/librime-lua/thirdparty")
+#   file(CREATE_LINK "${CMAKE_SOURCE_DIR}/librime-lua-deps"
+#        "${CMAKE_SOURCE_DIR}/librime/plugins/librime-lua/thirdparty"
+#        COPY_ON_ERROR SYMBOLIC)
+# endif()
 
 option(BUILD_TEST "" OFF)
 option(BUILD_STATIC "" ON)

@@ -339,6 +339,11 @@ class CommonKeyboardActionListener {
             }
 
             private fun handleDefaultKeyAction(action: KeyAction) {
+                // 修复：send: F1 + select: number 等组合，让普通 keycode 也能触发布局切换（不连带 ascii_mode 切换）
+                if (action.select.isNotEmpty() && action.select != ".next" && action.select != ".prior") {
+                    keyboardWindow.switchKeyboard(action.select)
+                    return
+                }
                 val shouldHookShiftKey = when {
                     prefs.keyboard.hookShiftSpace.getValue() && action.code == KeyEvent.KEYCODE_SPACE -> true
                     prefs.keyboard.hookShiftNum.getValue() && action.code in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> true

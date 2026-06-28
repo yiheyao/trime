@@ -128,14 +128,18 @@ class InputView(
         }
 
     private var lastAppearanceState = Triple(false, false, false)
+    private var lastAsciiMode = false
 
     private fun broadcastKeyAppearanceUpdate() {
         val composing = rime.run { statusCached.isComposing }
         val hasMenu = rime.run { hasMenu }
         val paging = rime.run { paging }
+        val asciiMode = rime.run { statusCached.isAsciiMode || statusCached.isAsciiPunct }
         val current = Triple(composing, hasMenu, paging)
-        if (current != lastAppearanceState) {
+        // ascii_mode 变化时也触发刷新（中文/英文切换时让自定义 label 重新计算）
+        if (current != lastAppearanceState || asciiMode != lastAsciiMode) {
             lastAppearanceState = current
+            lastAsciiMode = asciiMode
             broadcaster.onKeyAppearanceUpdate(current.first, current.second, current.third)
         }
     }
@@ -230,14 +234,6 @@ class InputView(
         updateKeyboardSize()
 
         add(
-            preedit.ui.root,
-            lParams(wrapContent, wrapContent) {
-                above(keyboardView)
-                startOfParent()
-            },
-        )
-
-        add(
             keyboardView,
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
@@ -245,9 +241,7 @@ class InputView(
             },
         )
 
-        // 童伴浮窗容器：紧贴 keyboardView 上方，底部 = 键盘顶部。
-        // IME 窗口高度 = 弹窗 + 键盘；弹窗位于键盘正上方，聊天内容
-        // 只在最下方被弹窗自身高度遮挡，弹窗与键盘之间没有空白。
+        // 童伴浮窗容器：紧贴 keyboardView 上方。
         val tongBanContainer = android.widget.FrameLayout(themedContext).apply {
             visibility = View.GONE
         }
@@ -256,9 +250,21 @@ class InputView(
             lParams(matchParent, wrapContent) {
                 centerHorizontally()
                 above(keyboardView)
+                below(inputBar.view)
+            },
+        )
+
+        // 拼音上屏区：在 tongBanContainer 之后 add，自然在最上层
+        add(
+            preedit.ui.root,
+            lParams(wrapContent, wrapContent) {
+                above(tongBanContainer)
+                startOfParent()
             },
         )
         tongBanManager.setupContainer(tongBanContainer)
+        // 确保 preedit 在最上层（不被童伴弹框覆盖）
+        preedit.ui.root.bringToFront()
         // 显式设置童按钮回调（避免初始化时序问题）
         inputBar.updateTongBanClickListener { toggleTongBan() }
         // 点击查询后：弹窗展开到键盘高度 + 隐藏键盘；两者同步进行实现"无感切换"
@@ -280,7 +286,9 @@ class InputView(
             },
         )
         // 把 tongBanContainer 移到最上层
-        tongBanContainer.bringToFront()
+        // 注意：弹窗现在已被夹在 inputBar 和 keyboardView 之间，不应再压在拼音栏上面
+        // 取消 bringToFront，让拼音栏始终在最上层可见
+        // tongBanContainer.bringToFront()
     }
 
     private fun toggleTongBan() {
@@ -288,6 +296,10 @@ class InputView(
         if (tongBanManager.isShowing) {
             tongBanManager.hide()
         } else {
+            // 弹窗打开时：清空拼音上屏（避免拼音栏被弹框覆盖）
+            if (rime.run { statusCached.isComposing }) {
+                rime.runIfReady { clearComposition() }
+            }
             tongBanManager.show(height)
         }
     }

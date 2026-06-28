@@ -1055,7 +1055,9 @@ tool_bar:
     action: Zenkaku_Hankaku
 
   # 右侧按钮列表（从右向左排列）
-  buttons: [ *hide_button, *emoji_button, *ascii_mode_button, *clipboard_button ]
+  # 注：剪贴板按钮已移到 "..." 面板的 static entries 中（SwitchOptionWindow.kt）
+  # 移除 ascii_mode_button（"中/En" 状态提示），不再在工具栏显示中英文切换指示
+  buttons: [ *hide_button, *emoji_button ]
 
 #键盘布局
 preset_keyboards:
@@ -1103,7 +1105,7 @@ preset_keyboards:
       - {click: Keyboard_bqrw, swipe_down: Color_switch, swipe_up: Color_switch, width: 12.5, key_text_size: "18", key_back_color: bgn, key_text_color: tgn}
       - {click: ',', label: '，', key_back_color: bh4, key_text_color: th4}
       - {click: space, swipe_left: "Left", swipe_right: "Right", swipe_up: Schema_switchcn, width: 30, key_back_color: bkg, key_text_color: tkg}
-      - {click: '.', label: '。', long_click: clipboard_window, key_back_color: bh4, key_text_color: th4}
+      - {click: '.', label: '。', key_back_color: bh4, key_text_color: th4}
       - {click: '/', long_click: liquid_keyboard_switch , key_text_size: "18", key_back_color: bh4, key_text_color: th4}
       - {click: Return, composing: Return1, swipe_up: Escape, width: 15, key_back_color: benter, key_text_color: tenter}
 
@@ -1261,7 +1263,7 @@ preset_keyboards:
       - {click: 货币, long_click: 十, key_text_size: "16"}
       - {click: 下标, long_click: 上标, key_text_size: "16", symbol_text_size: '8'}
       - {click: 天体, long_click: 星座, key_text_size: "16", symbol_text_size: '8'}
-      - {label: '123', click: Keyboard_number, long_click: Schema_switchen, composing: Page_Up, width: 16, key_back_color: bgn, key_text_color: tgn}
+      - {label: '123', send: F1, select: number, long_click: Schema_switchen, composing: Page_Up, width: 16, key_back_color: bgn, key_text_color: tgn}
       
       - {click: 标点, long_click: 零, key_text_size: "16"}
       - {click: 拼音, long_click: 竖标点, key_text_size: "16", symbol_text_size: '8'}
@@ -3995,7 +3997,6 @@ preset_keys:
   share_text: {label: 分享文本, send: Control+Alt+s} #>=Android 6.0
   redo: {label: 重做, functional: false, send: Control+Shift+z} #>=Android 6.0
   undo: {label: 撤銷, functional: false, send: Control+z} #>=Android 6.0
-  delimiter: {label: 分词, text: ''''}
   x1: {text: '{Home}{Right}{Right}', label: 单字, functional: false}
   x2: {text: '{Home}{Right}{Right}{Right}{Right}', label: 二字, functional: false}
   x3: {text: '{Home}{Right}{Right}{Right}{Right}{Right}{Right}', label: 三字, functional: false}
@@ -4010,9 +4011,9 @@ preset_keys:
   DeleteCandidate: {label: 删词, send: Control+Delete, functional: false}
   #切换键盘
   Keyboard_letter: { label: 字母, functional: true, send: Eisu_toggle, select: default }
-  Keyboard_default: { label: 返回, functional: false, send: Eisu_toggle, select: .default }
+  Keyboard_default: { label: 返回, functional: false, send: F1, select: .default }
   Keyboard_switch: { label: 键盘, functional: true, send: Eisu_toggle, select: .next }
-  Keyboard_number: { label: 123, functional: false, send: Eisu_toggle, select: number }
+  Keyboard_number: { label: 123, functional: false, select: number }
   Keyboard_editor: { label: 编辑, functional: false, send: Eisu_toggle, select: editor }
   Keyboard_symbols: { label: 更多, functional: false, send: Eisu_toggle, select: symbols }
   Keyboard_move: { label: ❖, functional: true, send: Eisu_toggle, select: move }

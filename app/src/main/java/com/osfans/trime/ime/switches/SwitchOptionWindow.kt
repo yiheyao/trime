@@ -20,9 +20,11 @@ import com.osfans.trime.daemon.launchOnReady
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.bar.ui.ToolButton
 import com.osfans.trime.ime.broadcast.InputBroadcastReceiver
+import com.osfans.trime.ime.clipboard.ClipboardWindow
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.dialog.EnabledSchemaPickerDialog
 import com.osfans.trime.ime.window.BoardWindow
+import com.osfans.trime.ime.window.BoardWindowManager
 import com.osfans.trime.ui.main.settings.ThemePickerDialog
 import com.osfans.trime.util.AppUtils
 import kotlinx.coroutines.launch
@@ -42,6 +44,7 @@ class SwitchOptionWindow :
     private val service: TrimeInputMethodService by di.instance()
     private val rime: RimeSession by di.instance()
     private val theme: Theme by di.instance()
+    private val windowManager: BoardWindowManager by di.instance()
 
     private val staticEntries by lazy {
         arrayOf(
@@ -49,6 +52,11 @@ class SwitchOptionWindow :
                 context.getString(R.string.virtual_keyboard),
                 R.drawable.ic_baseline_keyboard_24,
                 SwitchOptionEntry.Static.Type.Keyboard,
+            ),
+            SwitchOptionEntry.Static(
+                context.getString(R.string.clipboard),
+                R.drawable.ic_baseline_content_paste_24,
+                SwitchOptionEntry.Static.Type.Clipboard,
             ),
         )
     }
@@ -106,6 +114,10 @@ class SwitchOptionWindow :
                             ThemePickerDialog.build(service.lifecycleScope, context) {
                                 r.commitComposition()
                             }
+                        }
+                        SwitchOptionEntry.Static.Type.Clipboard -> {
+                            // 关闭当前面板并打开剪贴板窗口
+                            windowManager.attachWindow(ClipboardWindow())
                         }
                     }
                     is SwitchOptionEntry.Custom -> {

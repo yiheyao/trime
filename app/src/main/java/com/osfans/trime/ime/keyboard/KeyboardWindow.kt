@@ -266,10 +266,8 @@ class KeyboardWindow :
     }
 
     override fun onKeyAppearanceUpdate(composing: Boolean, menu: Boolean, paging: Boolean) {
-        if (!rime.run { statusCached }.isAsciiMode) {
-            currentKeyboard?.appearanceStateKeys?.forEach { key ->
-                currentKeyboardView?.invalidateKeyByIndex(key.index)
-            }
+        currentKeyboard?.appearanceStateKeys?.forEach { key ->
+            currentKeyboardView?.invalidateKeyByIndex(key.index)
         }
     }
 

@@ -84,17 +84,6 @@ class AboutFragment : PaddingPreferenceFragment() {
                     },
                 )
                 addPreference(
-                    R.string.about_oss_compliance_repo_clover,
-                    R.string.about_oss_compliance_repo_clover_url,
-                ) {
-                    startActivity(
-                        Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse(Const.CLOVERPINYIN_REPO_URL),
-                        ),
-                    )
-                }
-                addPreference(
                     R.string.about_oss_compliance_repo_trime,
                     R.string.about_oss_compliance_repo_trime_url,
                 ) {
@@ -138,7 +127,7 @@ class AboutFragment : PaddingPreferenceFragment() {
                 }
                 addPreference(
                     R.string.license,
-                    "${Const.LICENSE_SPDX_ID} / LGPL-3.0-or-later",
+                    Const.LICENSE_SPDX_ID,
                 ) {
                     // 直接导航到 LicenseFragment（避免触发外部 Intent 跳转路径，
                     // 鸿蒙/EMUI 在没有 <queries> 声明时可能抛 SecurityException 导致崩溃）

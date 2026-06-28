@@ -22,7 +22,6 @@ import com.osfans.trime.data.theme.FontManager
 import com.osfans.trime.data.theme.Theme
 import com.osfans.trime.ime.core.TrimeInputMethodService
 import com.osfans.trime.ime.keyboard.KeyboardWindow
-import com.osfans.trime.ime.segments.SegmentsWindow
 import com.osfans.trime.ime.window.BoardWindow
 import com.osfans.trime.ime.window.BoardWindowManager
 import com.osfans.trime.ui.main.ClipEditActivity
@@ -80,11 +79,6 @@ class ClipboardWindow(private val initialTab: Int = 0) : BoardWindow.BarBoardWin
                 launchTextSharing(text)
             }
 
-            override fun onSegment(bean: DatabaseBean) {
-                val text = bean.text ?: return
-                windowManager.attachWindow(SegmentsWindow(text))
-            }
-
             override fun onCollect(bean: DatabaseBean) {
                 service.lifecycleScope.launch {
                     CollectionHelper.addNewBean(bean.text ?: "")
@@ -116,11 +110,6 @@ class ClipboardWindow(private val initialTab: Int = 0) : BoardWindow.BarBoardWin
             override fun onShare(bean: DatabaseBean) {
                 val text = bean.text ?: return
                 launchTextSharing(text)
-            }
-
-            override fun onSegment(bean: DatabaseBean) {
-                val text = bean.text ?: return
-                windowManager.attachWindow(SegmentsWindow(text))
             }
 
             override fun onDelete(id: Int) {

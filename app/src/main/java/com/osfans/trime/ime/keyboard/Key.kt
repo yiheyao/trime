@@ -116,7 +116,10 @@ class Key(
     init {
         if (selfConfig != null) {
             val hasStateDependentBehavior = selfConfig.behaviors.keys.any { it < KeyBehavior.COMBO }
-            if (hasStateDependentBehavior) parent.appearanceStateKeys.add(this)
+            // 当用户自定义了 label 时，label 可能与 click 字符不同，
+            // 切换 ascii_mode 时需要刷新显示（label 在中文模式显示，click 字符在 ASCII 模式显示）。
+            val hasCustomLabel = label.isNotEmpty()
+            if (hasStateDependentBehavior || hasCustomLabel) parent.appearanceStateKeys.add(this)
             sendBindings = selfConfig.sendBindings || hasStateDependentBehavior
         } else {
             sendBindings = true
@@ -240,7 +243,7 @@ class Key(
             keyAction == click &&
             !keyActions.containsKey(KeyBehavior.ASCII) &&
             !rime.run { statusCached }.let { it.isAsciiMode || it.isAsciiPunct } -> label
-        else -> keyAction!!.getLabel(parent) // 中文狀態顯示標籤
+        else -> keyAction!!.getLabel(parent) // ASCII 狀態顯示 click 的 label
     }
 
     fun getPreviewText(behavior: KeyBehavior): String = when (behavior) {
