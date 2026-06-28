@@ -18,15 +18,21 @@ import re
 
 
 def load_traditional_chars(ts_file: str) -> set[str]:
-    """从 TSCharacters.txt 加载繁体字集合(单字繁体→简体映射)。"""
+    """从 TSCharacters.txt 加载繁体字集合(单字繁体→简体映射)。
+
+    TSCharacters.txt 使用 TAB 分隔,每行格式: <繁体字>\\t<简体字>。
+    第一列是繁体字(传统 → 简体的源),第二列是简体字。
+    必须只取第一列,不能 split() 后把简体值也算进去。
+    """
     trad = set()
     with open(ts_file, "r", encoding="utf-8") as f:
         for line in f:
             line = line.rstrip("\n")
             if not line or line.startswith("#"):
                 continue
-            parts = line.split()
-            if parts:
+            # 用 TAB 分割(因为 TSCharacters.txt 是 TAB 分隔)
+            parts = line.split("\t")
+            if parts and parts[0]:
                 trad.add(parts[0])  # 第一列是繁体字
     return trad
 
