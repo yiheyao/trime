@@ -1,0 +1,22 @@
+# Rime user data
+# encoding: utf-8
+#
+# 自动生成的新版默认配置（与 app/src/main/java/com/osfans/trime/data/base/DataManager.kt
+# 中的 SCHEMA_LIST_CUSTOM_PATCH 保持一致）。
+#
+# 部署方式（三选一）：
+#   1) 让 App 重新自动生成：清除 App 数据后启动一次 Trime，
+#      DataManager.sync() 会把这段内容写入 <userDataDir>/default.custom.yaml
+#   2) ADB 推送：
+#      adb push default.custom.yaml /sdcard/rime/default.custom.yaml
+#   3) 手动放到 /sdcard/rime/ 目录下，路径由 AppPrefs.PROFILE_USER_DATA_DIR 决定
+#
+# 关键改动：把 luna_pinyin_simp 放到 schema_list 第一位，
+# 这样默认输入法即为「童伴拼音·简化字」，luna_pinyin_simp 的
+#   switches.zh_simp.reset: 1  +  translator.prism: luna_pinyin_simp
+# 会保证输入『nihao』得到的候选词为简体（你好），不再出现繁体。
+
+patch:
+  schema_list:
+    - schema: luna_pinyin_simp
+    - schema: luna_pinyin
