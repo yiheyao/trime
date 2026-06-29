@@ -89,13 +89,13 @@
     <string name="hook_ctrl_zy">攔截 Ctrl+Z/Y</string>
     <string name="key_swipe_velocity">觸發按鍵滑動手勢的速度（距離/速度滿足其一即可）</string>
     <string name="build_info">建構資訊</string>
-    <string name="telegram">Telegram</string>
-    <string name="about_oss_compliance">本軟體使用以下開源專案：\nTrime（GPL-3.0）\n\n完整授權原文和合規補充見下方。散佈衍生作品請遵守對應 GNU 開源授權全部條款。</string>
+    <string name="telegram">聯繫</string>
+    <string name="about_oss_compliance">本軟體使用以下開源專案：\n\nTrime（GPL-3.0）：https://github.com/osfans/trime\n\n完整授權原文：\nLGPLv3：https://www.gnu.org/licenses/lgpl-3.0.html\n\n散佈衍生作品請遵守對應 GNU 開源授權全部條款。\n\n合規補充：\n詞庫僅導出、打包分享、商用上架、整合進本輸入法發布：\nrime-cloverpinyin 詞庫檔案需獨立可替換，禁止加密嵌入；\n兩份授權文本、完整源碼 / 原始 yaml 詞庫已隨包提供。</string>
     <string name="about_oss_compliance_title">開源合規聲明</string>
     <string name="about_oss_compliance_repo_trime">Trime（GPL-3.0）</string>
-    <string name="about_oss_compliance_repo_trime_url">github.com/osfans/trime</string>
+    <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>
     <string name="about_oss_compliance_notes_title">合規補充</string>
-    <string name="about_oss_compliance_notes_summary">涉及打包分享、上架商用或整體並入本輸入法釋出時：\n- Trime 整體以 GPL-3.0 copyleft 釋出，整體衍生作品必須完全開源。\n- 隨包附完整授權原文及對應源碼。</string>
+    <string name="about_oss_compliance_notes_summary">詞庫僅導出、打包分享、商用上架、整合進本輸入法發布：\nrime-cloverpinyin 詞庫檔案需獨立可替換，禁止加密嵌入；\n兩份授權文本、完整源碼 / 原始 yaml 詞庫已隨包提供。</string>
     <string name="quick_bar">快捷欄</string>
     <string name="copy_done">已複製</string>
     <string name="hook_shift_space">點擊空格時，忽略Shift的鎖定狀態</string>
