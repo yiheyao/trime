@@ -86,12 +86,12 @@
     <string name="build_info">构建信息</string>
     <string name="telegram">联系</string>
     <string name="quick_bar">快捷栏</string>
-    <string name="about_oss_compliance">本软件使用以下开源项目：\n\nTrime（GPL-3.0）：https://github.com/osfans/trime\n\n完整许可证原文：\nLGPLv3：https://www.gnu.org/licenses/lgpl-3.0.html\n\n分发衍生作品请遵守对应 GNU 开源协议全部条款。\n\n合规补充：\n词库仅导出、打包分享、商用上架、集成进本输入法发布：\nrime-cloverpinyin 词库文件需独立可替换，禁止加密嵌入；\n两份协议文本、完整源码 / 原始 yaml 词库已随包提供。</string>
+    <string name="about_oss_compliance">此类分发衍生作品请遵守对应 GNU 开源协议全部条款。rime-cloverpinyin 词库仅导出、打包分享、商用上架、集成进本输入法发布：两份协议文本、完整源码见github。</string>
     <string name="about_oss_compliance_title">开源合规声明</string>
     <string name="about_oss_compliance_repo_trime">Trime（GPL-3.0）</string>
     <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>
-    <string name="about_oss_compliance_notes_title">合规补充</string>
-    <string name="about_oss_compliance_notes_summary">词库仅导出、打包分享、商用上架、集成进本输入法发布：\nrime-cloverpinyin 词库文件需独立可替换，禁止加密嵌入；\n两份协议文本、完整源码 / 原始 yaml 词库已随包提供。</string>
+    <string name="about_oss_compliance_repo_rime_cloverpinyin">rime-cloverpinyin（LGPLv3）</string>
+    <string name="about_oss_compliance_repo_rime_cloverpinyin_url">https://github.com/fkxxyz/rime-cloverpinyin</string>
     <string name="copy_done">已复制</string>
     <string name="hook_shift_space">点击空格时，忽略Shift的锁定状态</string>
     <string name="hook_shift_num">点击0-9时，忽略Shift的锁定状态</string>
