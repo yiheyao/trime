@@ -95,13 +95,13 @@ class AboutFragment : PaddingPreferenceFragment() {
                     )
                 }
                 addPreference(
-                    R.string.about_oss_compliance_repo_rime_cloverpinyin,
-                    R.string.about_oss_compliance_repo_rime_cloverpinyin_url,
+                    R.string.about_oss_compliance_repo_rime_emoji,
+                    R.string.about_oss_compliance_repo_rime_emoji_url,
                 ) {
                     startActivity(
                         Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse(getString(R.string.about_oss_compliance_repo_rime_cloverpinyin_url)),
+                            Uri.parse(getString(R.string.about_oss_compliance_repo_rime_emoji_url)),
                         ),
                     )
                 }

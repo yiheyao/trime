@@ -55,6 +55,9 @@ class Rime {
     rime->initialize(&trime_traits);
     rime->set_notification_handler(notificationHandler, GlobalRef->jvm);
     rime->start_maintenance(fullCheck);
+    // Wait for maintenance thread to finish compiling dictionaries,
+    // so that the engine is fully ready before processing keys.
+    rime->join_maintenance_thread();
   }
 
   bool deploySchema(std::string_view schemaFile) {

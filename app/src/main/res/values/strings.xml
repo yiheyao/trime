@@ -97,8 +97,8 @@
     <string name="about_oss_compliance_title">Open Source Compliance</string>
     <string name="about_oss_compliance_repo_trime">Trime (GPL-3.0)</string>
     <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>
-    <string name="about_oss_compliance_repo_rime_cloverpinyin">rime-cloverpinyin (LGPL-3.0)</string>
-    <string name="about_oss_compliance_repo_rime_cloverpinyin_url">https://github.com/fkxxyz/rime-cloverpinyin</string>
+    <string name="about_oss_compliance_repo_rime_emoji">rime-emoji (LGPL-3.0)</string>
+    <string name="about_oss_compliance_repo_rime_emoji_url">https://github.com/rime/rime-emoji</string>
     <string name="hook_shift_num">Ignore Shift locked for 0-9</string>
     <string name="hook_shift_symbol">Ignore Shift locked for Symbol keys</string>
     <string name="hook_shift_arrow">Keep Shift locked for Arrow keys</string>
