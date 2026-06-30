@@ -24,7 +24,6 @@ object DataManager {
       patch:
         schema_list:
           - schema: luna_pinyin_simp
-          - schema: luna_pinyin
     """
 
     private val lock = ReentrantLock()

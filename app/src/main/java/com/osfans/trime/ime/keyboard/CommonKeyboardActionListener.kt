@@ -376,6 +376,15 @@ class CommonKeyboardActionListener {
                 metaState: Int,
             ) {
                 shouldReleaseKey = false
+                // 敏感输入框（密码/数字）直接发送按键，不经过 Rime
+                if (service.isCurrentInputSensitive()) {
+                    // 直接使用 Android KeyEvent key code，不转换为 Rime key value
+                    if (keyEventCode != KeyEvent.KEYCODE_UNKNOWN) {
+                        service.sendDownUpKeyEvent(keyEventCode, metaState)
+                        shouldReleaseKey = true
+                    }
+                    return
+                }
                 val value =
                     RimeKeyMapping
                         .keyCodeToVal(keyEventCode)

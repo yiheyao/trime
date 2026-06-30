@@ -9,28 +9,22 @@ import android.content.Context
 import android.view.ViewGroup
 import com.osfans.trime.R
 import splitties.dimensions.dp
-import splitties.resources.drawable
 import splitties.resources.resolveThemeAttribute
 import splitties.resources.styledColor
 import splitties.resources.styledDimenPxSize
-import splitties.resources.styledDrawable
 import splitties.views.backgroundColor
-import splitties.views.dsl.constraintlayout.before
 import splitties.views.dsl.constraintlayout.centerVertically
 import splitties.views.dsl.constraintlayout.constraintLayout
-import splitties.views.dsl.constraintlayout.endOfParent
 import splitties.views.dsl.constraintlayout.lParams
 import splitties.views.dsl.constraintlayout.matchConstraints
 import splitties.views.dsl.constraintlayout.startOfParent
 import splitties.views.dsl.core.Ui
 import splitties.views.dsl.core.add
-import splitties.views.dsl.core.imageButton
 import splitties.views.dsl.core.matchParent
 import splitties.views.dsl.core.textView
 import splitties.views.dsl.core.wrapContent
-import splitties.views.imageDrawable
-import splitties.views.setPaddingDp
 import splitties.views.textAppearance
+import splitties.views.setPaddingDp
 
 class UserDictListEntryUi(
     override val ctx: Context,
@@ -40,17 +34,13 @@ class UserDictListEntryUi(
         textAppearance = ctx.resolveThemeAttribute(android.R.attr.textAppearanceListItem)
     }
 
-    val moreButton = imageButton {
-        background = styledDrawable(android.R.attr.selectableItemBackground)
-        imageDrawable = drawable(R.drawable.ic_baseline_more_horiz_24)
-    }
-
     override val root = constraintLayout {
         layoutParams = ViewGroup.LayoutParams(matchParent, wrapContent)
         backgroundColor = styledColor(android.R.attr.colorBackground)
         minHeight = styledDimenPxSize(android.R.attr.listPreferredItemHeightSmall)
 
         val paddingStart = styledDimenPxSize(android.R.attr.listPreferredItemPaddingStart)
+        val paddingEnd = styledDimenPxSize(android.R.attr.listPreferredItemPaddingEnd)
         add(
             nameText,
             lParams {
@@ -58,16 +48,7 @@ class UserDictListEntryUi(
                 height = wrapContent
                 centerVertically()
                 startOfParent(paddingStart)
-                before(moreButton)
-            },
-        )
-        add(
-            moreButton,
-            lParams {
-                width = dp(53)
-                height = matchConstraints
-                centerVertically()
-                endOfParent()
+                marginEnd = paddingEnd
             },
         )
     }

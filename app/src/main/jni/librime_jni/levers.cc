@@ -4,6 +4,9 @@
 
 #include <rime_levers_api.h>
 
+#include <rime/service.h>
+#include <rime/lever/user_dict_manager.h>
+
 #include "jni-utils.h"
 #include "objconv.h"
 
@@ -119,8 +122,10 @@ Java_com_osfans_trime_core_Rime_selectRimeSchemas(JNIEnv *env,
 extern "C" JNIEXPORT jobjectArray JNICALL
 Java_com_osfans_trime_data_userdict_UserDictManager_getUserDictList(
     JNIEnv *env, jclass clazz) {
-  SwitcherSettings switcher;
-  return stringVectorToJStringArray(env, switcher.userDictList());
+  rime::UserDictManager mgr(&rime::Service::instance().deployer());
+  rime::UserDictList list;
+  mgr.GetUserDictList(&list);
+  return stringVectorToJStringArray(env, list);
 }
 
 extern "C" JNIEXPORT jboolean JNICALL

@@ -777,7 +777,7 @@ open class TrimeInputMethodService : LifecycleInputMethodService() {
      * 当前输入字段是否是"敏感"输入框（密码 / 纯数字 / 系统弹窗等），
      * 此类字段童伴浮窗绝对不能劫持输入，必须走系统 InputConnection。
      */
-    private fun isCurrentInputSensitive(): Boolean {
+    internal fun isCurrentInputSensitive(): Boolean {
         val info = currentInputEditorInfo ?: return false
         val type = info.inputType
         val cls = type and InputType.TYPE_MASK_CLASS
