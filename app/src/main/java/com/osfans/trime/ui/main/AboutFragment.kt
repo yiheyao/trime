@@ -95,17 +95,16 @@ class AboutFragment : PaddingPreferenceFragment() {
                     )
                 }
                 addPreference(
-                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
-                        isIconSpaceReserved = false
-                        isCopyingEnabled = true
-                        setTitle(R.string.about_oss_compliance_notes_title)
-                        // 让合规补充里嵌入的 <a> 链接可点击跳转
-                        summary = Html.fromHtml(
-                            getString(R.string.about_oss_compliance_notes_summary),
-                            Html.FROM_HTML_MODE_COMPACT,
-                        )
-                    },
-                )
+                    R.string.about_oss_compliance_repo_rime_cloverpinyin,
+                    R.string.about_oss_compliance_repo_rime_cloverpinyin_url,
+                ) {
+                    startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(getString(R.string.about_oss_compliance_repo_rime_cloverpinyin_url)),
+                        ),
+                    )
+                }
             }
             addCategory("") {
                 isIconSpaceReserved = false

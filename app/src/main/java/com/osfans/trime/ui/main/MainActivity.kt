@@ -11,7 +11,6 @@ import android.view.Menu
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.graphics.drawable.DrawerArrowDrawable
@@ -24,8 +23,6 @@ import androidx.core.view.updateLayoutParams
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.fragment.NavHostFragment
-import com.hjq.permissions.Permission
-import com.hjq.permissions.XXPermissions
 import com.osfans.trime.BuildConfig
 import com.osfans.trime.R
 import com.osfans.trime.daemon.launchOnReady
@@ -33,7 +30,6 @@ import com.osfans.trime.data.prefs.AppPrefs
 import com.osfans.trime.data.soundeffect.SoundEffectManager
 import com.osfans.trime.databinding.ActivityMainBinding
 import com.osfans.trime.ui.setup.SetupActivity
-import com.osfans.trime.util.isStorageAvailable
 import com.osfans.trime.util.item
 import com.osfans.trime.util.parcelable
 import com.osfans.trime.util.startActivity
@@ -109,7 +105,6 @@ class MainActivity : AppCompatActivity() {
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         processIntent(intent)
-        checkNotificationPermission()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -178,28 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (isStorageAvailable()) {
-            SoundEffectManager.init()
-        }
-    }
-
-    private fun checkNotificationPermission() {
-        if (XXPermissions.isGranted(this, Permission.POST_NOTIFICATIONS)) {
-            return
-        } else {
-            AlertDialog
-                .Builder(this)
-                .setIconAttribute(android.R.attr.alertDialogIcon)
-                .setTitle(R.string.notification_permission_title)
-                .setMessage(R.string.notification_permission_message)
-                .setPositiveButton(R.string.grant_permission) { _, _ ->
-                    XXPermissions
-                        .with(this)
-                        .permission(Permission.POST_NOTIFICATIONS)
-                        .request(null)
-                }.setNegativeButton(android.R.string.cancel, null)
-                .show()
-        }
+        SoundEffectManager.init()
     }
 
     companion object {

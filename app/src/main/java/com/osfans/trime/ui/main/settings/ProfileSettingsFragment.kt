@@ -111,7 +111,7 @@ class ProfileSettingsFragment : PaddingPreferenceFragment() {
                         key = AppPrefs.Profile.USER_DATA_DIR
                         isIconSpaceReserved = false
                         setTitle(R.string.user_data_dir)
-                        setDefaultValue(DataManager.defaultDataDir.absolutePath)
+                        setDefaultValue("")
                         summary = prefs.userDataDir.getValue()
                         setOnPreferenceClickListener {
                             val dirNameText = ctx.editText {
@@ -158,7 +158,7 @@ class ProfileSettingsFragment : PaddingPreferenceFragment() {
                                 }
                                 .setNegativeButton(android.R.string.cancel, null)
                                 .setNeutralButton(R.string.default_) { _, _ ->
-                                    prefs.userDataDir.setValue(DataManager.defaultDataDir.absolutePath)
+                                    prefs.userDataDir.setValue("")
                                 }
                                 .setOnDismissListener {
                                     // avoid memory leak
