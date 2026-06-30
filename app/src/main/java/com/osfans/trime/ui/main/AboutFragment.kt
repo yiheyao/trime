@@ -105,6 +105,17 @@ class AboutFragment : PaddingPreferenceFragment() {
                         ),
                     )
                 }
+                addPreference(
+                    com.osfans.trime.util.HtmlSummaryPreference(requireContext()).apply {
+                        isIconSpaceReserved = false
+                        isCopyingEnabled = true
+                        setTitle(R.string.about_oss_compliance_notes_title)
+                        summary = Html.fromHtml(
+                            getString(R.string.about_oss_compliance_notes),
+                            Html.FROM_HTML_MODE_COMPACT,
+                        )
+                    },
+                )
             }
             addCategory("") {
                 isIconSpaceReserved = false

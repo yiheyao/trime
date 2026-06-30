@@ -91,6 +91,8 @@
     <string name="build_info">建構資訊</string>
     <string name="telegram">聯繫</string>
     <string name="about_oss_compliance">本軟體使用以下開源專案：</string>
+    <string name="about_oss_compliance_notes_title">合規補充</string>
+    <string name="about_oss_compliance_notes">作品遵守對應 GNU 開源協議全部條款。\n詞庫僅匯出、打包、商用上架、整合進本輸入法發布。</string>
     <string name="about_oss_compliance_title">開源合規聲明</string>
     <string name="about_oss_compliance_repo_trime">Trime（GPL-3.0）</string>
     <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>

@@ -1,0 +1,19 @@
+---
+name: luna_pinyin_full
+version: "2024.02.10"
+sort: by_weight
+
+import_tables:
+  - THUOCL_animal
+  - THUOCL_caijing
+  - THUOCL_car
+  - THUOCL_chengyu
+  - THUOCL_diming
+  - THUOCL_food
+  - THUOCL_IT
+  - THUOCL_law
+  - THUOCL_lishimingren
+  - THUOCL_medical
+  - THUOCL_poem
+  - sogou_new_words
+...

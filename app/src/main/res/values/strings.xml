@@ -94,6 +94,8 @@
     <string name="copy_done">Copied to clipboard!</string>
     <string name="hook_shift_space">Ignore Shift locked for Space</string>
     <string name="about_oss_compliance">This software uses the following open source projects:</string>
+    <string name="about_oss_compliance_notes_title">Compliance Notes</string>
+    <string name="about_oss_compliance_notes">This work complies with all terms of the corresponding GNU open source license.\nDictionary files are only exported, packaged, commercially listed, or integrated into this input method for release.</string>
     <string name="about_oss_compliance_title">Open Source Compliance</string>
     <string name="about_oss_compliance_repo_trime">Trime (GPL-3.0)</string>
     <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>

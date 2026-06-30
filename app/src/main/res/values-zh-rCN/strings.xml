@@ -87,6 +87,8 @@
     <string name="telegram">联系</string>
     <string name="quick_bar">快捷栏</string>
     <string name="about_oss_compliance">本软件使用以下开源项目：</string>
+    <string name="about_oss_compliance_notes_title">合规补充</string>
+    <string name="about_oss_compliance_notes">作品遵守对应 GNU 开源协议全部条款。\n词库仅导出、打包、商用上架、集成进本输入法发布。</string>
     <string name="about_oss_compliance_title">开源合规声明</string>
     <string name="about_oss_compliance_repo_trime">Trime（GPL-3.0）</string>
     <string name="about_oss_compliance_repo_trime_url">https://github.com/osfans/trime</string>
